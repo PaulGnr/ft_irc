@@ -22,6 +22,7 @@ static void	add_to_pfds(struct pollfd **pfds, int new_fd, int *fd_count, int *fd
 	}
 	(*pfds)[*fd_count].fd = new_fd;
 	(*pfds)[*fd_count].events = POLLIN;
+	(*pfds)[*fd_count].revents = 0;
 
 	++(*fd_count);
 }
@@ -84,6 +85,13 @@ static void	poll_loop(struct pollfd pfds[], int sockfd, int fd_count, int fd_siz
 					}
 					else
 					{
+						if (!parsing(buf))
+						{
+							while (fd_count)
+								del_from_pfds(pfds, 0, &fd_count);
+							delete [] pfds;
+							exit(0);
+						}
 						for (int j = 0; j < fd_count; ++j)
 						{
 							int	dest_fd = pfds[j].fd;

@@ -19,6 +19,7 @@
 int		get_listener_socket(char **argv);
 void	poll_handler(int sockfd);
 int		sendall(int dest_fd, char *buf, int *nbytes);
+int		parsing(char *buf);
 void	debug(std::string str);
 
 #endif
