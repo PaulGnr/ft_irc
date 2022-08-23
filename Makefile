@@ -1,4 +1,4 @@
-SRC	= $(SRCDIR)/main.cpp
+SRC	= $(SRCDIR)/main.cpp $(SRCDIR)/listener.cpp $(SRCDIR)/poll_handler.cpp $(SRCDIR)/sendall.cpp $(SRCDIR)/debug.cpp
 
 SRCDIR	= src
 
