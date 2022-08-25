@@ -7,7 +7,7 @@
 #define PFDIT std::vector<struct pollfd>::iterator
 
 class User;
- 
+
 class Server
 {
 	public:
@@ -34,6 +34,8 @@ class Server
 
 		void	createListener(void);
 		void	*get_in_addr(struct sockaddr *sa);
+		void	_parse_user_info(int sender_fd, std::string buf);
+		void	_welcome(int sender_fd, std::string nick, std::string user);
 };
 
 #endif

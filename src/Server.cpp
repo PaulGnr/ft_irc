@@ -34,7 +34,7 @@ void	Server::poll_handler(void)
 	socklen_t				addrlen;
 	char					remoteIP[INET6_ADDRSTRLEN];
 	char					buf[256];
-	
+
 	std::cout << "Waiting for connections..." << std::endl;
 	for(;;)
 	{
@@ -80,7 +80,6 @@ void	Server::poll_handler(void)
 							break ;
 						_users[i - 1]->appendMsg(buf);
 					}
-
 					if (nbytes <= 0)
 					{
 						if (nbytes == 0)
@@ -91,6 +90,7 @@ void	Server::poll_handler(void)
 					}
 					else
 					{
+						_parse_user_info(sender_fd, buf);
 						for (unsigned long j = 0; j < _pfds.size(); ++j)
 						{
 							int	dest_fd = _pfds[j].fd;
@@ -196,4 +196,49 @@ void	*Server::get_in_addr(struct sockaddr *sa)
 	if (sa->sa_family == AF_INET)
 		return &(((struct sockaddr_in*)sa)->sin_addr);
 	return &(((struct sockaddr_in6*)sa)->sin6_addr);
+}
+
+void	Server::_parse_user_info(int sender_fd, std::string buf)
+{
+	std::string	nick;
+	std::string	user;
+	size_t		i = 0;
+
+	nick = buf.substr(buf.find("NICK") + 5);
+	while (i < nick.find("\r"))
+		i++;
+	nick = nick.substr(0, i);
+
+	i = 0;
+	user = buf.substr(buf.find("USER") + 5);
+	while (i < user.find(' '))
+		i++;
+	user = user.substr(0, i);
+
+	std::cout << "NICK: -" << nick << "-" << std::endl;
+	std::cout << "USER: -" << user << "-" << std::endl;
+
+	// boucle infinie
+	// _welcome(sender_fd, nick, user);
+	(void)sender_fd;
+
+	// segfault
+	// _users[sender_fd]->setNickname(nick);
+	// _users[sender_fd]->setUser(user);
+}
+
+void	Server::_welcome(int sender_fd, std::string nick, std::string user)
+{
+	// degueu mais temporaire
+	std::string	host = "localhost";
+
+	std::string	m1 = "001 " + nick + " :Welcome to the " + host + " network, " + nick + "[" + user + "@" + host + "]\r\n";
+	std::string	m2 = "002 " + nick + " :Your host is 127.0.0.1, running version 1.2.3\r\n";
+	std::string	m3 = "003 " + nick + " :This server was created 18:07:30\r\n";
+	std::string	m4 = "004 " + nick + " localhost irssi 1.2.3 (20210409 0011) 1 2\r\n";
+
+	send(sender_fd, m1.c_str(), m1.length(), 0);
+	send(sender_fd, m2.c_str(), m2.length(), 0);
+	send(sender_fd, m3.c_str(), m3.length(), 0);
+	send(sender_fd, m4.c_str(), m4.length(), 0);
 }

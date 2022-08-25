@@ -2,7 +2,7 @@
 # define USER_HPP
 
 #include "ft_irc.hpp"
- 
+
 class User
 {
 	public:
@@ -10,14 +10,14 @@ class User
 		~User();
 		User(struct pollfd *pfd, struct sockaddr_storage *addr);
 
-		void	setPseudo(std::string pseudo);
+		void	setNickname(std::string nickname);
 		void	setHostname(std::string hostname);
 		void	setUser(std::string user);
 		void	setServer(std::string server);
 		void	setWelcomed(bool welcomed);
 		void	setAddr(struct sockaddr_storage *addr);
 
-		std::string		getPseudo(void) const;
+		std::string		getNickname(void) const;
 		std::string		getHostname(void) const;
 		std::string		getUser(void) const;
 		std::string		getServer(void) const;
@@ -30,7 +30,7 @@ class User
 
 	private:
 
-		std::string				_pseudo;
+		std::string				_nickname;
 		std::string				_hostname;
 		std::string				_user;
 		std::string				_server;
