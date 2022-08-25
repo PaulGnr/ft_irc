@@ -12,7 +12,12 @@ DEP		= $(OBJ:%.o=%.d)
 
 CFLAGS	= -Wall -Wextra -Werror -std=c++98
 
-CC	= c++
+HOST = $(shell whoami)
+ifeq ($(HOST),louisraffin)
+	CC = c++-11
+else
+	CC = c++
+endif
 
 RM	= rm -rf
 
