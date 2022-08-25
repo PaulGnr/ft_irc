@@ -2,17 +2,16 @@
 
 int	main(int argc, char **argv)
 {
-	int	sockfd;
-
 	if (argc != 3)
 	{
 		std::cerr << "Error : Wrong number of arguments." << std::endl;
 		return (1);
 	}
 
-	sockfd = get_listener_socket(argv);
+	Server	server(argv[1], argv[2]);
+	server.poll_handler();
 
-	poll_handler(sockfd);
+	//poll_handler(server);
 
 	return (0);
 }

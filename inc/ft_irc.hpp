@@ -12,14 +12,21 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <vector>
+
+#include "Channel.hpp"
+#include "Server.hpp"
+#include "User.hpp"
+
+class Server;
+class User;
 
 #define BACKLOG 10
 #define DEBUG 0
+#define PFDIT std::vector<struct pollfd>::iterator
 
 int		get_listener_socket(char **argv);
-void	poll_handler(int sockfd);
-int		sendall(int dest_fd, char *buf, int *nbytes);
-int		parsing(char *buf);
-void	debug(std::string str);
+void	poll_handler(Server &server);
+int		sendall(int dest_fd, const char *buf, int *nbytes);
 
 #endif

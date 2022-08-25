@@ -1,6 +1,6 @@
 #include "ft_irc.hpp"
 
-int	sendall(int dest_fd, char *buf, int *nbytes)
+int	sendall(int dest_fd, const char *buf, int *nbytes)
 {
 	int	total = 0;
 	int	bytesleft = *nbytes;
