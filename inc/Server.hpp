@@ -19,7 +19,6 @@ class Server
 		std::string					getPort(void) const;
 		std::string					getPassword(void) const;
 		int							getListener(void) const;
-		User						&getUser(PFDIT &it);
 
 		void	poll_handler(void);
 		void	addUser(int fd, struct sockaddr_storage &addr);
@@ -30,12 +29,13 @@ class Server
 		std::vector<User *>			_users;
 		std::string					_port;
 		std::string					_password;
+		std::string					_host;
 		int							_listener;
 
-		void	createListener(void);
-		void	*get_in_addr(struct sockaddr *sa);
-		void	_parse_user_info(int sender_fd, std::string buf);
-		void	_welcome(int sender_fd, std::string nick, std::string user);
+		void	_createListener(void);
+		void*	_get_in_addr(struct sockaddr *sa);
+		void	_sendMsg(User *user, int sender_fd);
+		int		_sendall(int dest_fd, const char *buf, int *nbytes);
 };
 
 #endif

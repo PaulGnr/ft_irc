@@ -11,7 +11,5 @@ int	main(int argc, char **argv)
 	Server	server(argv[1], argv[2]);
 	server.poll_handler();
 
-	//poll_handler(server);
-
 	return (0);
 }

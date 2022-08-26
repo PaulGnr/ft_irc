@@ -10,14 +10,14 @@ class User
 		~User();
 		User(struct pollfd *pfd, struct sockaddr_storage *addr);
 
-		void	setNickname(std::string nickname);
+		void	setNick(std::string nick);
 		void	setHostname(std::string hostname);
 		void	setUser(std::string user);
 		void	setServer(std::string server);
 		void	setWelcomed(bool welcomed);
 		void	setAddr(struct sockaddr_storage *addr);
 
-		std::string		getNickname(void) const;
+		std::string		getNick(void) const;
 		std::string		getHostname(void) const;
 		std::string		getUser(void) const;
 		std::string		getServer(void) const;
@@ -25,12 +25,13 @@ class User
 		bool			hasBeenWelcomed(void) const;
 		struct pollfd*	getPfd(void) const;
 
-		void	appendMsg(std::string msg);
-		void	clearMsg(void);
+		void	appendMessage(std::string msg);
+		void	clearMessage(void);
+		void	parse_info(void);
 
 	private:
 
-		std::string				_nickname;
+		std::string				_nick;
 		std::string				_hostname;
 		std::string				_user;
 		std::string				_server;
@@ -38,6 +39,9 @@ class User
 		bool					_welcomed;
 		struct pollfd			*_pfd;
 		struct sockaddr_storage	*_addr;
+
+		std::string	_parser_utils(std::string info, char end);
+		void		_welcome(void);
 };
 
 std::ostream&	operator<<(std::ostream &o, const User &user);

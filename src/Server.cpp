@@ -1,8 +1,8 @@
 #include "Server.hpp"
 
-Server::Server(std::string port, std::string password): _port(port), _password(password)
+Server::Server(std::string port, std::string password): _port(port), _password(password), _host("localhost")
 {
-	createListener();
+	_createListener();
 }
 
 Server::~Server()
@@ -13,19 +13,6 @@ std::vector<User *>			&Server::getUsers(void) {return (_users);}
 std::string					Server::getPort(void) const {return (_port);}
 std::string					Server::getPassword(void) const {return (_password);}
 int							Server::getListener(void) const {return (_listener);}
-User						&Server::getUser(PFDIT &it)
-{
-	std::vector<User *>	user = getUsers();
-	unsigned long	i = 0;
-
-	std::cout << (*it).fd << std::endl;
-	while (it->fd != user[i]->getPfd()->fd && i < user.size())
-	{
-		std::cout << it->fd << " " << user[i]->getPfd()->fd << std::endl;
-		++i;
-	}
-	return (*(user[i]));
-}
 
 void	Server::poll_handler(void)
 {
@@ -47,7 +34,7 @@ void	Server::poll_handler(void)
 			exit(1);
 		}
 
-		for (unsigned long i = 0; i < _pfds.size(); ++i)
+		for (size_t i = 0; i < _pfds.size(); ++i)
 		{
 			if (_pfds[i].revents & POLLIN)
 			{
@@ -61,7 +48,7 @@ void	Server::poll_handler(void)
 					{
 						addUser(new_fd, remoteaddr);
 						std::cout << "pollserver : New connection from ";
-						std::cout << inet_ntop(remoteaddr.ss_family, get_in_addr((struct sockaddr *)&remoteaddr), remoteIP, INET6_ADDRSTRLEN);
+						std::cout << inet_ntop(remoteaddr.ss_family, _get_in_addr((struct sockaddr *)&remoteaddr), remoteIP, INET6_ADDRSTRLEN);
 						std::cout << " on socket " << new_fd << std::endl;
 					}
 				}
@@ -70,7 +57,7 @@ void	Server::poll_handler(void)
 					int	sender_fd = _pfds[i].fd;
 					int	nbytes = 0;
 
-					_users[i - 1]->clearMsg();
+					_users[i - 1]->clearMessage();
 					memset(buf, 0, sizeof buf);
 					while (!std::strstr(buf, "\r\n"))
 					{
@@ -78,8 +65,9 @@ void	Server::poll_handler(void)
 						nbytes = recv(sender_fd, buf, sizeof buf, 0);
 						if (nbytes <= 0)
 							break ;
-						_users[i - 1]->appendMsg(buf);
+						_users[i - 1]->appendMessage(buf);
 					}
+
 					if (nbytes <= 0)
 					{
 						if (nbytes == 0)
@@ -90,17 +78,8 @@ void	Server::poll_handler(void)
 					}
 					else
 					{
-						_parse_user_info(sender_fd, buf);
-						for (unsigned long j = 0; j < _pfds.size(); ++j)
-						{
-							int	dest_fd = _pfds[j].fd;
-
-							if (dest_fd != _listener && dest_fd != sender_fd)
-							{
-								if (sendall(dest_fd, buf, &nbytes) == -1)
-									std::cerr << "send" << std::endl;
-							}
-						}
+						_users[i - 1]->parse_info();
+						_sendMsg(_users[i - 1], sender_fd);
 					}
 				}
 			}
@@ -127,7 +106,7 @@ void	Server::delUser(int i)
 		_users.erase(_users.begin() + i - 1);
 }
 
-void	Server::createListener(void)
+void	Server::_createListener(void)
 {
 	struct addrinfo	hints, *servinfo, *p;
 	int				status, yes = 1;
@@ -191,56 +170,48 @@ void	Server::createListener(void)
 	_pfds.push_back(pfd);
 }
 
-void	*Server::get_in_addr(struct sockaddr *sa)
+void	*Server::_get_in_addr(struct sockaddr *sa)
 {
 	if (sa->sa_family == AF_INET)
 		return &(((struct sockaddr_in*)sa)->sin_addr);
 	return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
-void	Server::_parse_user_info(int sender_fd, std::string buf)
+void	Server::_sendMsg(User *user, int sender_fd)
 {
-	std::string	nick;
-	std::string	user;
-	size_t		i = 0;
+	std::string	msg = user->getMessage();
+	int			nbytes;
 
-	std::cout << buf << std::endl;
+	if (user->getMessage().length())
+	{
+		for (size_t j = 0; j < _pfds.size(); ++j)
+		{
+			int	dest_fd = _pfds[j].fd;
 
-	nick = buf.substr(buf.find("NICK") + 5);
-	while (i < nick.find("\r"))
-		i++;
-	nick = nick.substr(0, i);
-
-	i = 0;
-	user = buf.substr(buf.find("USER") + 5);
-	while (i < user.find(' '))
-		i++;
-	user = user.substr(0, i);
-
-	std::cout << "NICK: -" << nick << "-" << std::endl;
-	std::cout << "USER: -" << user << "-" << std::endl;
-
-	// boucle infinie
-	// _welcome(sender_fd, nick, user);
-	(void)sender_fd;
-
-	// segfault
-	// _users[sender_fd]->setNickname(nick);
-	// _users[sender_fd]->setUser(user);
+			if (dest_fd != _listener && dest_fd != sender_fd)
+			{
+				nbytes = msg.length();
+				if (_sendall(dest_fd, msg.c_str(), &nbytes) == -1)
+					std::cerr << "send" << std::endl;
+			}
+		}
+	}
 }
 
-void	Server::_welcome(int sender_fd, std::string nick, std::string user)
+int	Server::_sendall(int dest_fd, const char *buf, int *nbytes)
 {
-	// degueu mais temporaire
-	std::string	host = "localhost";
+	int	total = 0;
+	int	bytesleft = *nbytes;
+	int	n;
 
-	std::string	m1 = "001 " + nick + " :Welcome to the " + host + " network, " + nick + "[" + user + "@" + host + "]\r\n";
-	std::string	m2 = "002 " + nick + " :Your host is " + host + ", running version 1.2.3\r\n";
-	std::string	m3 = "003 " + nick + " :This server was created 18:07:30\r\n";
-	std::string	m4 = "004 " + nick + " localhost irssi 1.2.3 (20210409 0011)\r\n";
+	while (total < *nbytes)
+	{
+		n = send(dest_fd, buf + total, bytesleft, 0);
+		if (n == -1) break;
+		total += n;
+		bytesleft -= n;
+	}
+	*nbytes = total;
 
-	send(sender_fd, m1.c_str(), m1.length(), 0);
-	send(sender_fd, m2.c_str(), m2.length(), 0);
-	send(sender_fd, m3.c_str(), m3.length(), 0);
-	send(sender_fd, m4.c_str(), m4.length(), 0);
+	return (n == -1 ? -1 : 0);
 }

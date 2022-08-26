@@ -31,8 +31,6 @@ class User;
 #define DEBUG 0
 #define PFDIT std::vector<struct pollfd>::iterator
 
-int		get_listener_socket(char **argv);
-void	poll_handler(Server &server);
-int		sendall(int dest_fd, const char *buf, int *nbytes);
+//int		get_listener_socket(char **argv);
 
 #endif
