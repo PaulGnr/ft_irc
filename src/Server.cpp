@@ -204,6 +204,8 @@ void	Server::_parse_user_info(int sender_fd, std::string buf)
 	std::string	user;
 	size_t		i = 0;
 
+	std::cout << buf << std::endl;
+
 	nick = buf.substr(buf.find("NICK") + 5);
 	while (i < nick.find("\r"))
 		i++;
@@ -233,9 +235,9 @@ void	Server::_welcome(int sender_fd, std::string nick, std::string user)
 	std::string	host = "localhost";
 
 	std::string	m1 = "001 " + nick + " :Welcome to the " + host + " network, " + nick + "[" + user + "@" + host + "]\r\n";
-	std::string	m2 = "002 " + nick + " :Your host is 127.0.0.1, running version 1.2.3\r\n";
+	std::string	m2 = "002 " + nick + " :Your host is " + host + ", running version 1.2.3\r\n";
 	std::string	m3 = "003 " + nick + " :This server was created 18:07:30\r\n";
-	std::string	m4 = "004 " + nick + " localhost irssi 1.2.3 (20210409 0011) 1 2\r\n";
+	std::string	m4 = "004 " + nick + " localhost irssi 1.2.3 (20210409 0011)\r\n";
 
 	send(sender_fd, m1.c_str(), m1.length(), 0);
 	send(sender_fd, m2.c_str(), m2.length(), 0);
