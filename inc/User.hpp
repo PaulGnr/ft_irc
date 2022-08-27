@@ -34,14 +34,16 @@ class User
 		std::string				_nick;
 		std::string				_hostname;
 		std::string				_user;
+		std::string				_password;
 		std::string				_server;
 		std::string				_message;
 		bool					_welcomed;
 		struct pollfd			*_pfd;
 		struct sockaddr_storage	*_addr;
 
-		std::string	_parser_utils(std::string info, char end);
-		void		_welcome(void);
+		std::string		_parser_utils(std::string info, char end);
+		void			_welcome(void);
+		std::string		_displayTime(void);
 };
 
 std::ostream&	operator<<(std::ostream &o, const User &user);

@@ -1,9 +1,9 @@
 #include "User.hpp"
 
-User::User(): _nick(""), _hostname(""), _user(""), _server(""), _welcomed(false), _pfd(NULL), _addr(NULL)
+User::User(): _nick(""), _hostname(""), _user(""), _password(""), _server(""), _welcomed(false), _pfd(NULL), _addr(NULL)
 {}
 
-User::User(struct pollfd *pfd, struct sockaddr_storage *addr): _nick(""), _hostname(""), _user(""), _server("localhost"), _message(""), _welcomed(false), _pfd(pfd), _addr(addr)
+User::User(struct pollfd *pfd, struct sockaddr_storage *addr): _nick(""), _hostname(""), _user(""), _password(""), _server("localhost"), _message(""), _welcomed(false), _pfd(pfd), _addr(addr)
 {}
 
 User::~User()
@@ -45,11 +45,13 @@ void	User::parse_info(void)
 	if ((pos = _message.find("MODE")) != std::string::npos)
 		_message.erase(pos, _message.find("\r\n") + 2);
 
+	_password = _parser_utils("PASS", '\r');
 	_nick = _parser_utils("NICK", '\r');
 	_user = _parser_utils("USER", ' ');
 
-	//std::cout << "NICK: -" << _nick << "-" << std::endl;
-	//std::cout << "USER: -" << _user << "-" << std::endl;
+	// std::cout << "NICK: -" << _nick << "-" << std::endl;
+	// std::cout << "USER: -" << _user << "-" << std::endl;
+	// std::cout << "PASS: -" << _password << "-" << std::endl;
 
 	if (!_welcomed && _nick.length() && _user.length())
 		_welcome();
@@ -76,16 +78,31 @@ std::string	User::_parser_utils(std::string info, char end)
 
 void	User::_welcome(void)
 {
-	std::string	m1 = "001 " + _nick + " :Welcome to the " + _server + " network, " + _nick + "[" + _user + "@" + _server + "]\r\n";
-	std::string	m2 = "002 " + _nick + " :Your host is " + _server + ", running version 1.2.3\r\n";
-	std::string	m3 = "003 " + _nick + " :This server was created 18:07:30\r\n";
-	std::string	m4 = "004 " + _nick + " localhost irssi 1.2.3 (20210409 0011)\r\n";
+	std::string	rpl_1 = ":server 001 " + _nick + " :Welcome to the " + _server + " network, " + _nick + "[" + _user + "@" + _server + "]\r\n";
+	std::string	rpl_2 = ":server 002 " + _nick + " :Your host is " + _server + ", running version 1.2.3\r\n";
+	std::string	rpl_3 = ":server 003 " + _nick + " :This server was created " + _displayTime() + "\r\n";
+	std::string	rpl_4 = ":server 004 " + _nick + " localhost irssi 1.2.3 (20210409 0011)\r\n";
 
-	send(_pfd->fd, m1.c_str(), m1.length(), 0);
-	send(_pfd->fd, m2.c_str(), m2.length(), 0);
-	send(_pfd->fd, m3.c_str(), m3.length(), 0);
-	send(_pfd->fd, m4.c_str(), m4.length(), 0);
+	send(_pfd->fd, rpl_1.c_str(), rpl_1.length(), 0);
+	send(_pfd->fd, rpl_2.c_str(), rpl_2.length(), 0);
+	send(_pfd->fd, rpl_3.c_str(), rpl_3.length(), 0);
+	send(_pfd->fd, rpl_4.c_str(), rpl_4.length(), 0);
 	_welcomed = true;
+}
+
+std::string	User::_displayTime(void)
+{
+	time_t				timestamp = time(NULL);
+	tm					*now = localtime(&timestamp);
+	std::stringstream	date;
+
+	date << std::setw(2) << std::setfill('0') << now->tm_mday << "/";
+	date << std::setw(2) << std::setfill('0') << now->tm_mon + 1 << "/";
+	date << now->tm_year + 1900 << " at ";
+	date << std::setw(2) << std::setfill('0') << now->tm_hour << ":";
+	date << std::setw(2) << std::setfill('0') << now->tm_min << ":";
+	date << std::setw(2) << std::setfill('0') << now->tm_sec;
+	return (date.str());
 }
 
 std::ostream&	operator<<(std::ostream &o, const User &user)

@@ -67,7 +67,7 @@ void	Server::poll_handler(void)
 							break ;
 						_users[i - 1]->appendMessage(buf);
 					}
-
+					
 					if (nbytes <= 0)
 					{
 						if (nbytes == 0)
