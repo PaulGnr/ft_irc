@@ -1,4 +1,4 @@
-SRC	= $(SRCDIR)/main.cpp $(SRCDIR)/User.cpp $(SRCDIR)/Server.cpp
+SRC	= $(SRCDIR)/main.cpp $(SRCDIR)/User.cpp $(SRCDIR)/Server.cpp $(SRCDIR)/utils.cpp
 
 SRCDIR	= src
 

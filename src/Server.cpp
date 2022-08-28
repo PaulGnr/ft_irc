@@ -23,7 +23,8 @@ void	Server::poll_handler(void)
 	char					buf[256];
 
 	std::cout << "Waiting for connections..." << std::endl;
-	for(;;)
+
+	while (true)
 	{
 		int	poll_count = poll(_pfds.data(), _pfds.size(), -1);
 
@@ -47,9 +48,10 @@ void	Server::poll_handler(void)
 					else
 					{
 						addUser(new_fd, remoteaddr);
-						std::cout << "pollserver : New connection from ";
-						std::cout << inet_ntop(remoteaddr.ss_family, _get_in_addr((struct sockaddr *)&remoteaddr), remoteIP, INET6_ADDRSTRLEN);
-						std::cout << " on socket " << new_fd << std::endl;
+						char port[1000];
+						getnameinfo((struct sockaddr *)&remoteaddr, addrlen, remoteIP, INET6_ADDRSTRLEN, port, INET6_ADDRSTRLEN, 0);
+						std::cout << "New connection from " << _host << ":" << port << " on socket " << new_fd << std::endl;
+						// std::cout << inet_ntop(remoteaddr.ss_family, _get_in_addr((struct sockaddr *)&remoteaddr), remoteIP, INET6_ADDRSTRLEN);
 					}
 				}
 				else
@@ -67,7 +69,7 @@ void	Server::poll_handler(void)
 							break ;
 						_users[i - 1]->appendMessage(buf);
 					}
-					
+
 					if (nbytes <= 0)
 					{
 						if (nbytes == 0)
@@ -78,7 +80,7 @@ void	Server::poll_handler(void)
 					}
 					else
 					{
-						_users[i - 1]->parse_info();
+						_users[i - 1]->parse_info(getPassword());
 						_sendMsg(_users[i - 1], sender_fd);
 					}
 				}

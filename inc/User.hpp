@@ -27,14 +27,13 @@ class User
 
 		void	appendMessage(std::string msg);
 		void	clearMessage(void);
-		void	parse_info(void);
+		void	parse_info(std::string server_pass);
 
 	private:
 
 		std::string				_nick;
 		std::string				_hostname;
 		std::string				_user;
-		std::string				_password;
 		std::string				_server;
 		std::string				_message;
 		bool					_welcomed;
@@ -43,7 +42,6 @@ class User
 
 		std::string		_parser_utils(std::string info, char end);
 		void			_welcome(void);
-		std::string		_displayTime(void);
 };
 
 std::ostream&	operator<<(std::ostream &o, const User &user);

@@ -10,6 +10,8 @@ class User;
 
 class Server
 {
+	typedef std::vector<pollfd>::iterator pfds_iterator;
+
 	public:
 		Server(std::string port, std::string password);
 		~Server();
@@ -25,12 +27,12 @@ class Server
 		void	delUser(int i);
 
 	private:
-		std::vector<struct pollfd>	_pfds;
-		std::vector<User *>			_users;
+		int							_listener;
 		std::string					_port;
 		std::string					_password;
 		std::string					_host;
-		int							_listener;
+		std::vector<struct pollfd>	_pfds;
+		std::vector<User *>			_users;
 
 		void	_createListener(void);
 		void*	_get_in_addr(struct sockaddr *sa);
