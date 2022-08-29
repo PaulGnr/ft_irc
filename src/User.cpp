@@ -49,11 +49,6 @@ void	User::parse_info(std::string server_pass)
 	_nick = _parser_utils("NICK", '\r');
 	_user = _parser_utils("USER", ' ');
 
-	// std::cout << "NICK: -" << _nick << "-" << std::endl;
-	// std::cout << "USER: -" << _user << "-" << std::endl;
-	// std::cout << "u_PASS: -" << user_pass << "-" << std::endl;
-	// std::cout << "s_PASS: -" << server_pass << "-" << std::endl;
-
 	if (user_pass.compare(server_pass) != 0)
 	{
 		std::cout << "not the same" << std::endl;
