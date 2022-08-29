@@ -142,7 +142,7 @@ void	Server::addUser(int fd, struct sockaddr_storage &addr)
 	pfd.events = POLLIN;
 	pfd.revents = 0;
 	_pfds.push_back(pfd);
-	_users.insert(std::make_pair(fd, new User(&(_pfds.back()), &addr)));
+	_users.insert(std::make_pair(fd, new User(fd, &addr)));
 }
 
 void	Server::delUser(int i)

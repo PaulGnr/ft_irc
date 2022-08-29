@@ -1,9 +1,9 @@
 #include "User.hpp"
 
-User::User(): _nick(""), _hostname(""), _user(""), _server(""), _welcomed(false), _pfd(NULL), _addr(NULL)
+User::User(): _nick(""), _hostname(""), _user(""), _server(""), _welcomed(false), _addr(NULL)
 {}
 
-User::User(struct pollfd *pfd, struct sockaddr_storage *addr): _nick(""), _hostname(""), _user(""), _server("localhost"), _message(""), _welcomed(false), _pfd(pfd), _addr(addr)
+User::User(int fd, struct sockaddr_storage *addr): _nick(""), _hostname(""), _user(""), _server("localhost"), _message(""), _welcomed(false), _fd(fd), _addr(addr)
 {}
 
 User::~User()
@@ -22,7 +22,7 @@ std::string		User::getUser(void) const {return (_user);}
 std::string		User::getServer(void) const {return (_server);}
 std::string		User::getMessage(void) const {return (_message);}
 bool			User::hasBeenWelcomed(void) const {return (_welcomed);}
-struct pollfd*	User::getPfd(void) const {return (_pfd);}
+int				User::getFd(void) const {return (_fd);}
 
 void	User::appendMessage(std::string msg)
 {
@@ -57,8 +57,8 @@ void	User::parse_info(std::string server_pass)
 	if (user_pass.compare(server_pass) != 0)
 	{
 		std::cout << "not the same" << std::endl;
-		send_msg(_pfd->fd, ERR_PASSWDMISMATCH(_nick));
-		close(_pfd->fd);
+		send_msg(_fd, ERR_PASSWDMISMATCH(_nick));
+		close(_fd);
 	}
 	else if (!_welcomed && _nick.length() && _user.length())
 	{
@@ -93,10 +93,10 @@ void	User::_welcome(void)
 	std::string	rpl_3 = ":server 003 " + _nick + " :This server was created " + timestamp() + "\r\n";
 	std::string	rpl_4 = ":server 004 " + _nick + " localhost irssi 1.2.3 (20210409 0011)\r\n";
 
-	send(_pfd->fd, rpl_1.c_str(), rpl_1.length(), 0);
-	send(_pfd->fd, rpl_2.c_str(), rpl_2.length(), 0);
-	send(_pfd->fd, rpl_3.c_str(), rpl_3.length(), 0);
-	send(_pfd->fd, rpl_4.c_str(), rpl_4.length(), 0);
+	send(_fd, rpl_1.c_str(), rpl_1.length(), 0);
+	send(_fd, rpl_2.c_str(), rpl_2.length(), 0);
+	send(_fd, rpl_3.c_str(), rpl_3.length(), 0);
+	send(_fd, rpl_4.c_str(), rpl_4.length(), 0);
 	_welcomed = true;
 }
 
@@ -108,7 +108,7 @@ std::ostream&	operator<<(std::ostream &o, const User &user)
 	o << "\t- user ->              " << user.getUser() << std::endl;
 	o << "\t- server ->            " << user.getServer() << std::endl;
 	o << "\t- has been welcomed -> " << user.hasBeenWelcomed() << std::endl;
-	o << "\t- pfd ->               " << user.getPfd()->fd << std::endl;
+	o << "\t- pfd ->               " << user.getFd() << std::endl;
 	o << "\t- msg ->               " << user.getMessage() << std::endl;
 	return (o);
 }
