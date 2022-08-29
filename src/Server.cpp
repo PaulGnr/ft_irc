@@ -66,29 +66,28 @@ void	Server::_clientConnect(void)
 
 void	Server::_clientMessage(pfds_iterator &it)
 {
+	User	*user = _users.at(it->fd);
 	char	buf[1024];
-	int		sender_fd = it->fd;
-	User	*user = _users.at(sender_fd);
 	int		nbytes = 0;
 
 	// get message
 	user->clearMessage();
-	memset(buf, 0, sizeof buf);
+	memset(buf, 0, sizeof(buf));
 	while (!std::strstr(buf, "\r\n"))
 	{
-		memset(buf, 0, sizeof buf);
-		nbytes = recv(sender_fd, buf, sizeof buf, 0);
+		memset(buf, 0, sizeof(buf));
+		nbytes = recv(it->fd, buf, sizeof(buf), 0);
 		if (nbytes <= 0)
 			break ;
 		user->appendMessage(buf);
 	}
-	// < 0 = error, == 0 = user disconnect else execute msg
+	// <0: error, ==0: user disconnect, >0: execute msg
 	if (nbytes <= 0)
 	{
 		if (nbytes == 0)
-			std::cout << "pollserver : socket " << sender_fd << " hung up" << std::endl;
+			std::cout << "pollserver : socket " << it->fd << " hung up" << std::endl;
 		else
-			std::cerr << "recv" << std::endl;
+			std::cerr << "Error : recv" << std::endl;
 		delUser(it);
 	}
 	else
@@ -96,7 +95,7 @@ void	Server::_clientMessage(pfds_iterator &it)
 		user->parse_info(getPassword());
 		if (!user->hasBeenWelcomed())
 			delUser(it);
-		_sendMsg(user, sender_fd);
+		_sendMsg(user, it->fd);
 	}
 }
 
@@ -132,17 +131,14 @@ void	Server::_createListener(void)
 
 	getaddrinfo(NULL, _port.c_str(), &hint, &serv_address);
 
-	//int sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	int sockfd = socket(serv_address->ai_family, serv_address->ai_socktype, serv_address->ai_protocol);
 
 	if (sockfd < 0)
 		throw std::runtime_error("Error while opening socket.");
 
-	// Bind the socket to the current IP address on selected port
 	if (bind(sockfd, serv_address->ai_addr, serv_address->ai_addrlen) < 0)
 		throw std::runtime_error("Error while binding socket.");
 
-	// Let socket be able to listen for requests
 	if (listen(sockfd, 1000) < 0)
 		throw std::runtime_error("Error while listening on socket.");
 	_listener = sockfd;
