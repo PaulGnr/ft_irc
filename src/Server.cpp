@@ -89,17 +89,13 @@ void	Server::_clientMessage(pfds_iterator &it)
 			std::cout << "pollserver : socket " << sender_fd << " hung up" << std::endl;
 		else
 			std::cerr << "recv" << std::endl;
-		delUser(sender_fd);
-		--it;
+		delUser(it);
 	}
 	else
 	{
 		user->parse_info(getPassword());
 		if (!user->hasBeenWelcomed())
-		{
-			delUser(sender_fd);
-			--it;
-		}
+			delUser(it);
 		_sendMsg(user, sender_fd);
 	}
 }
@@ -115,19 +111,13 @@ void	Server::addUser(int fd, struct sockaddr_storage &addr)
 	_users.insert(std::make_pair(fd, new User(fd, &addr)));
 }
 
-void	Server::delUser(int i)
+void	Server::delUser(pfds_iterator &it)
 {
-	if (i > 0)
-		_users.erase(i);
-	close(i);
-	for (pfds_iterator it = _pfds.begin(); it != _pfds.end(); ++it)
-	{
-		if (it->fd == i)
-		{
-			_pfds.erase(it);
-			break;
-		}
-	}
+	if (it->fd > 0)
+		_users.erase(it->fd);
+	close(it->fd);
+	_pfds.erase(it);
+	it--;
 }
 
 void	Server::_createListener(void)

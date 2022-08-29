@@ -24,7 +24,7 @@ class Server
 
 		void	poll_handler(void);
 		void	addUser(int fd, struct sockaddr_storage &addr);
-		void	delUser(int i);
+		void	delUser(pfds_iterator &it);
 
 	private:
 		int							_listener;
