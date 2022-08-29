@@ -54,12 +54,12 @@ void	User::parse_info(std::string server_pass)
 	// std::cout << "u_PASS: -" << user_pass << "-" << std::endl;
 	// std::cout << "s_PASS: -" << server_pass << "-" << std::endl;
 
-	if (user_pass != server_pass)
+	if (!_welcomed && user_pass != server_pass)
 	{
 		send_msg(_pfd->fd, ERR_PASSWDMISMATCH(_nick));
 		close(_pfd->fd);
 	}
-	else if (!_welcomed && _nick.length() && _user.length())
+	else	if (!_welcomed && _nick.length() && _user.length())
 		_welcome();
 }
 
