@@ -1,8 +1,7 @@
 #include "Server.hpp"
 
-Server::Server(std::string port, std::string password): _password(password), _host("localhost")
+Server::Server(std::string port, std::string password): _port(port), _password(password), _host("localhost")
 {
-	sscanf(port.c_str(), "%d", &_port);
 	_createListener();
 }
 
@@ -10,8 +9,8 @@ Server::~Server()
 {}
 
 std::vector<struct pollfd>	&Server::getPfds(void) {return (_pfds);}
-std::vector<User *>			&Server::getUsers(void) {return (_users);}
-int							Server::getPort(void) const {return (_port);}
+std::map<int, User *>		&Server::getUsers(void) {return (_users);}
+std::string					Server::getPort(void) const {return (_port);}
 std::string					Server::getPassword(void) const {return (_password);}
 int							Server::getListener(void) const {return (_listener);}
 
@@ -143,20 +142,31 @@ void	Server::addUser(int fd, struct sockaddr_storage &addr)
 	pfd.events = POLLIN;
 	pfd.revents = 0;
 	_pfds.push_back(pfd);
-	_users.push_back(new User(&(_pfds.back()), &addr));
+	_users.insert(std::make_pair(fd, new User(&(_pfds.back()), &addr)));
 }
 
 void	Server::delUser(int i)
 {
+	if (i > 0)
+		_users.erase(_pfds[i].fd);
 	close(_pfds[i].fd);
 	_pfds.erase(_pfds.begin() + i);
-	if (i > 0)
-		_users.erase(_users.begin() + i - 1);
 }
 
 void	Server::_createListener(void)
 {
-	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	struct	addrinfo	hint, *serv_address = NULL;
+
+	bzero(&hint, sizeof(hint));
+	
+	hint.ai_family = AF_UNSPEC;
+	hint.ai_socktype = SOCK_STREAM;
+	hint.ai_flags = AI_PASSIVE;
+
+	getaddrinfo(NULL, _port.c_str(), &hint, &serv_address);
+
+	//int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	int sockfd = socket(serv_address->ai_family, serv_address->ai_socktype, serv_address->ai_protocol);
 
 	if (sockfd < 0)
 		throw std::runtime_error("Error while opening socket.");
@@ -175,20 +185,23 @@ void	Server::_createListener(void)
 	// 	throw std::runtime_error("Error while setting socket to NON-BLOCKING.");
 	// }
 
-	struct sockaddr_in serv_address = {};
+	//struct sockaddr_in serv_address = {};
 
 	// Clear address structure, should prevent some segmentation fault and artifacts
-	bzero(&serv_address, sizeof(serv_address));
+	//bzero(&serv_address, sizeof(serv_address));
 
 	/*
 	 * htons() convert unsigned short int to big-endian network byte order as expected from TCP protocol standards
 	 */
+	/*
 	serv_address.sin_family = AF_INET;
 	serv_address.sin_addr.s_addr = INADDR_ANY;
-	serv_address.sin_port = htons(_port);
+	serv_address.sin_port = htons(std::stoi(_port));
+	*/
 
 	// Bind the socket to the current IP address on selected port
-	if (bind(sockfd, (struct sockaddr *) &serv_address, sizeof(serv_address)) < 0)
+	if (bind(sockfd, serv_address->ai_addr, serv_address->ai_addrlen) < 0)
+	//if (bind(sockfd, (struct sockaddr *) &serv_address, sizeof(serv_address)) < 0)
 		throw std::runtime_error("Error while binding socket.");
 
 	// Let socket be able to listen for requests

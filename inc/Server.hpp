@@ -3,8 +3,8 @@
 
 #include "ft_irc.hpp"
 #include <arpa/inet.h>
-
-#define PFDIT std::vector<struct pollfd>::iterator
+#include <map>
+#include <string>
 
 class User;
 
@@ -17,8 +17,8 @@ class Server
 		~Server();
 
 		std::vector<struct pollfd>	&getPfds(void);
-		std::vector<User *>			&getUsers(void);
-		int							getPort(void) const;
+		std::map<int, User *>		&getUsers(void);
+		std::string					getPort(void) const;
 		std::string					getPassword(void) const;
 		int							getListener(void) const;
 
@@ -28,11 +28,11 @@ class Server
 
 	private:
 		int							_listener;
-		int							_port;
+		std::string					_port;
 		std::string					_password;
 		std::string					_host;
 		std::vector<struct pollfd>	_pfds;
-		std::vector<User *>			_users;
+		std::map<int, User *>		_users;
 
 		void	_createListener(void);
 		void*	_get_in_addr(struct sockaddr *sa);
