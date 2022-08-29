@@ -36,33 +36,58 @@ void	User::clearMessage(void) {
 void	User::parse_info(std::string server_pass)
 {
 	size_t	pos;
+	std::string user_pass;
 
-	if ((pos = _message.find("CAP LS")) != std::string::npos)
-		_message.erase(pos, _message.find("\r\n") + 2);
-	if ((pos = _message.find("PING")) != std::string::npos)
-		_message.erase(pos, _message.find("\r\n") + 2);
-	// A enlever plus tard
-	if ((pos = _message.find("MODE")) != std::string::npos)
-		_message.erase(pos, _message.find("\r\n") + 2);
-
-	std::string user_pass = _parser_utils("PASS", '\r');
-	_nick = _parser_utils("NICK", '\r');
-	_user = _parser_utils("USER", ' ');
-
-	if (user_pass.compare(server_pass) != 0)
+	if (!_welcomed)
 	{
-		std::cout << "not the same" << std::endl;
-		send_msg(_fd, ERR_PASSWDMISMATCH(_nick));
-		close(_fd);
+		if ((pos = _message.find("CAP LS")) != std::string::npos)
+		{
+			_message.erase(pos, _message.find("\r\n") + 2);
+			_irssiClient(server_pass);
+		}
+		else// if (!_nick.length() || !_user.length())
+			_ncClient(server_pass);
 	}
-	else if (!_welcomed && _nick.length() && _user.length())
-	{
-		std::cout << "welcome" << std::endl;
+
+	// std::cout << "NICK: -" << _nick << "-" << std::endl;
+	// std::cout << "USER: -" << _user << "-" << std::endl;
+	// std::cout << "u_PASS: -" << user_pass << "-" << std::endl;
+	// std::cout << "s_PASS: -" << server_pass << "-" << std::endl;
+}
+
+void	User::_irssiClient(std::string server_pass)
+{
+	std::string user_pass = _parser_utils("PASS", "\r\n");
+	_nick = _parser_utils("NICK", "\r\n");
+	_user = _parser_utils("USER", " ");
+	_message.erase(0, _message.find("\r\n") + 2);
+	if (user_pass.compare(server_pass) == 0)
 		_welcome();
+	else
+		send_msg(_fd, ERR_PASSWDMISMATCH(_nick));
+}
+
+void	User::_ncClient(std::string server_pass)
+{
+	std::string	user_pass = _parser_utils("PASS", " ");
+	
+	if (user_pass.compare(server_pass) != 0)
+		send_msg(_fd, ERR_PASSWDMISMATCH(_nick));
+	else
+	{
+		_nick = _parser_utils("NICK", " ");
+		_user = _parser_utils("USER", "\r\n");
+		if (!_nick.length() || !_user.length())
+			send_msg(_fd, "Wrong nickname or username");
+		else
+		{
+			send_msg(_fd, "Welcome !");
+			_welcomed = true;
+		}
 	}
 }
 
-std::string	User::_parser_utils(std::string info, char end)
+std::string	User::_parser_utils(std::string info, std::string end)
 {
 	std::string	str;
 	size_t		i = 0;
@@ -71,11 +96,11 @@ std::string	User::_parser_utils(std::string info, char end)
 	if (_message.find(info) != std::string::npos)
 	{
 		str = _message.substr(_message.find(info) + info.length() + 1);
-		while (i < str.find(end))
+		while (i < str.find(end.c_str()))
 			++i;
 		str = str.substr(0, i);
-		if ((pos = _message.find("\r\n")) != std::string::npos)
-			_message.erase(0, pos + 2);
+		if ((pos = _message.find(end.c_str())) != std::string::npos)
+			_message.erase(0, pos + end.length());
 		return (str);
 	}
 	return ("");

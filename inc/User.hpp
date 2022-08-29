@@ -40,7 +40,10 @@ class User
 		int						_fd;
 		struct sockaddr_storage	*_addr;
 
-		std::string		_parser_utils(std::string info, char end);
+		void			_irssiClient(std::string server_pass);
+		void			_ncClient(std::string server_pass);
+		void			_firstRecv(void);
+		std::string		_parser_utils(std::string info, std::string end);
 		void			_welcome(void);
 };
 

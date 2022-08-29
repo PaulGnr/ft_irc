@@ -35,6 +35,9 @@ class Server
 		std::map<int, User *>		_users;
 
 		void	_createListener(void);
+		void	_clientConnect(void);
+		void	_clientDisconnect(void);
+		void	_clientMessage(pfds_iterator &it);
 		void*	_get_in_addr(struct sockaddr *sa);
 		void	_sendMsg(User *user, int sender_fd);
 		int		_sendall(int dest_fd, const char *buf, int *nbytes);
