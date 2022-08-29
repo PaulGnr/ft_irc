@@ -18,7 +18,7 @@ class Server
 
 		std::vector<struct pollfd>	&getPfds(void);
 		std::vector<User *>			&getUsers(void);
-		std::string					getPort(void) const;
+		int							getPort(void) const;
 		std::string					getPassword(void) const;
 		int							getListener(void) const;
 
@@ -28,7 +28,7 @@ class Server
 
 	private:
 		int							_listener;
-		std::string					_port;
+		int							_port;
 		std::string					_password;
 		std::string					_host;
 		std::vector<struct pollfd>	_pfds;

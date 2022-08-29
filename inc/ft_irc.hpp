@@ -33,7 +33,7 @@ class User;
 
 void		send_msg(int fd, std::string msg);
 std::string	timestamp(void);
-void		log(std::string msg);
+void		server_log(std::string msg);
 //int		get_listener_socket(char **argv);
 
 #endif
