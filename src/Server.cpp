@@ -3,6 +3,7 @@
 Server::Server(std::string port, std::string password): _port(port), _password(password), _host("localhost")
 {
 	_createListener();
+	_createCmd();
 }
 
 Server::~Server()
@@ -28,95 +29,22 @@ void	Server::poll_handler(void)
 
 		for (pfds_iterator it = _pfds.begin(); it != _pfds.end(); it++)
 		{
+			if (it->revents & POLLHUP) // En fait y en a besoin avec irssi
+			{
+				std::cout << "pollserver : socket " << it->fd << " hung up" << std::endl;
+				_delUser(it);
+			}
 			if (it->revents & POLLIN)
 			{
 				if (it->fd == _listener)
 				{
 					_clientConnect();
-					// std::cout << "client connect" << std::endl;
 					break ;
 				}
 				_clientMessage(it);
-				// std::cout << "message" << std::endl;
 			}
 		}
 	}
-}
-
-void	Server::_clientConnect(void)
-{
-	int						new_fd;
-	struct sockaddr_storage	remoteaddr;
-	socklen_t				addrlen;
-	char					remoteIP[INET6_ADDRSTRLEN];
-
-	addrlen = sizeof remoteaddr;
-	new_fd = accept(_listener, (struct sockaddr *)&remoteaddr, &addrlen);
-	if (new_fd == -1)
-		std::cerr << "Error : accept : " << std::strerror(errno) << std::endl;
-	else
-	{
-		addUser(new_fd, remoteaddr);
-		char port[1000];
-		getnameinfo((struct sockaddr *)&remoteaddr, addrlen, remoteIP, INET6_ADDRSTRLEN, port, INET6_ADDRSTRLEN, 0);
-		std::cout << "New connection from " << _host << ":" << port << " on socket " << new_fd << std::endl;
-		// std::cout << inet_ntop(remoteaddr.ss_family, _get_in_addr((struct sockaddr *)&remoteaddr), remoteIP, INET6_ADDRSTRLEN);
-	}
-}
-
-void	Server::_clientMessage(pfds_iterator &it)
-{
-	User	*user = _users.at(it->fd);
-	char	buf[1024];
-	int		nbytes = 0;
-
-	// get message
-	user->clearMessage();
-	memset(buf, 0, sizeof(buf));
-	while (!std::strstr(buf, "\r\n"))
-	{
-		memset(buf, 0, sizeof(buf));
-		nbytes = recv(it->fd, buf, sizeof(buf), 0);
-		if (nbytes <= 0)
-			break ;
-		user->appendMessage(buf);
-	}
-	// <0: error, ==0: user disconnect, >0: execute msg
-	if (nbytes <= 0)
-	{
-		if (nbytes == 0)
-			std::cout << "pollserver : socket " << it->fd << " hung up" << std::endl;
-		else
-			std::cerr << "Error : recv" << std::endl;
-		delUser(it);
-	}
-	else
-	{
-		user->parse_info(getPassword());
-		if (!user->hasBeenWelcomed())
-			delUser(it);
-		_sendMsg(user, it->fd);
-	}
-}
-
-void	Server::addUser(int fd, struct sockaddr_storage &addr)
-{
-	struct pollfd	pfd;
-
-	pfd.fd = fd;
-	pfd.events = POLLIN;
-	pfd.revents = 0;
-	_pfds.push_back(pfd);
-	_users.insert(std::make_pair(fd, new User(fd, &addr)));
-}
-
-void	Server::delUser(pfds_iterator &it)
-{
-	if (it->fd > 0)
-		_users.erase(it->fd);
-	close(it->fd);
-	_pfds.erase(it);
-	it--;
 }
 
 void	Server::_createListener(void)
@@ -142,7 +70,134 @@ void	Server::_createListener(void)
 	if (listen(sockfd, 1000) < 0)
 		throw std::runtime_error("Error while listening on socket.");
 	_listener = sockfd;
+}
 
+void	Server::_createCmd(void)
+{
+	_cmd.insert(std::make_pair("CAP", &Server::_caplsCmd));
+	_cmd.insert(std::make_pair("PASS", &Server::_passCmd));
+	_cmd.insert(std::make_pair("NICK", &Server::_nickCmd));
+	_cmd.insert(std::make_pair("USER", &Server::_userCmd));
+}
+
+void	Server::_clientConnect(void)
+{
+	int						new_fd;
+	struct sockaddr_storage	remoteaddr;
+	socklen_t				addrlen;
+	char					remoteIP[INET6_ADDRSTRLEN];
+
+	addrlen = sizeof remoteaddr;
+	new_fd = accept(_listener, (struct sockaddr *)&remoteaddr, &addrlen);
+	if (new_fd == -1)
+		std::cerr << "Error : accept : " << std::strerror(errno) << std::endl;
+	else
+	{
+		_addUser(new_fd, remoteaddr);
+		char port[1000];
+		getnameinfo((struct sockaddr *)&remoteaddr, addrlen, remoteIP, INET6_ADDRSTRLEN, port, INET6_ADDRSTRLEN, 0);
+		std::cout << "New connection from " << _host << ":" << port << " on socket " << new_fd << std::endl;
+		// std::cout << inet_ntop(remoteaddr.ss_family, _get_in_addr((struct sockaddr *)&remoteaddr), remoteIP, INET6_ADDRSTRLEN);
+	}
+}
+
+void	Server::_clientMessage(pfds_iterator &it)
+{
+	User	*user = _users.at(it->fd);
+	int		nbytes;
+	
+	nbytes = _getMessage(user);
+	// <0: error, ==0: user disconnect, >0: execute msg
+	if (nbytes <= 0)
+	{
+		if (nbytes == 0)
+			std::cout << "pollserver : socket " << it->fd << " hung up" << std::endl;
+		else
+			std::cerr << "Error : recv" << std::endl;
+		_delUser(it);
+	}
+	else
+		_handleCmd(user);
+}
+
+int	Server::_getMessage(User *user)
+{
+	int			fd = user->getFd();
+	int			nbytes = 0;
+	char		buf[1024];
+	std::string	str;
+
+	// get message
+	while (str.rfind("\r\n") != str.length() - 2 || str.length() <= 2)
+	{
+		memset(buf, 0, sizeof(buf));
+		nbytes = recv(fd, buf, sizeof(buf), 0);
+		if (nbytes <= 0)
+			break ;
+		str.append(buf);
+	}
+	user->setMessage(str);
+	return (nbytes);
+}
+
+/*
+void	Server::_clientMessage(pfds_iterator &it)
+{
+	User	*user = _users.at(it->fd);
+	char	buf[1024];
+	int		nbytes = 0;
+
+	// get message
+	user->clearMessage();
+	memset(buf, 0, sizeof(buf));
+	while (!std::strstr(buf, "\r\n"))
+	{
+		memset(buf, 0, sizeof(buf));
+		nbytes = recv(it->fd, buf, sizeof(buf), 0);
+		if (nbytes <= 0)
+			break ;
+		user->appendMessage(buf);
+	}
+
+	// <0: error, ==0: user disconnect, >0: execute msg
+	if (nbytes <= 0)
+	{
+		if (nbytes == 0)
+			std::cout << "pollserver : socket " << it->fd << " hung up" << std::endl;
+		else
+			std::cerr << "Error : recv" << std::endl;
+		_delUser(it);
+	}
+	else
+	{
+		user->parse_info(getPassword());
+		if (!user->hasBeenWelcomed())
+			_delUser(it);
+		_sendMsg(user, it->fd);
+	}
+}
+*/
+
+void	Server::_addUser(int fd, struct sockaddr_storage &addr)
+{
+	struct pollfd	pfd;
+
+	pfd.fd = fd;
+	pfd.events = POLLIN;
+	pfd.revents = 0;
+	_pfds.push_back(pfd);
+	_users.insert(std::make_pair(fd, new User(fd, &addr)));
+}
+
+void	Server::_delUser(pfds_iterator &it)
+{
+	User	*user = _users.at(it->fd);
+	if (it->fd > 0)
+		_users.erase(it->fd);
+	close(it->fd);
+	_pfds.erase(it);
+	it--;
+	delete user;
 }
 
 void	*Server::_get_in_addr(struct sockaddr *sa)
@@ -189,4 +244,98 @@ int	Server::_sendall(int dest_fd, const char *buf, int *nbytes)
 	*nbytes = total;
 
 	return (n == -1 ? -1 : 0);
+}
+
+void	Server::_handleCmd(User *user)
+{
+	std::string	msg = user->getMessage();
+	std::string	cmd;
+	std::string	buf;
+
+	while (msg.length())
+	{
+		if (msg.find("\r\n") != std::string::npos)
+		{
+			cmd = msg.substr(0, msg.find(' '));
+			buf = msg.substr(cmd.length() + 1, msg.find("\r\n") - cmd.length() - 1);
+			try
+			{
+				(this->*(_cmd.at(cmd)))(user, buf); 
+				/* Pour au-dessus : Partie un peu tricky, en gros je sors le
+				 * pointeur sur fonction correspondant a la cmd dans la map,
+				 * ensuite je le dereference avec * et ensuite je vais chercher
+				 * la fonction qui correspond a cette instance de class Server
+				 * avec le this->, et enfin je mets les arguments que je veux
+				 * lui envoyer
+				 */
+				msg.erase(0, msg.find("\r\n") + 2);
+			}
+			catch (const std::out_of_range &e)
+			{
+				msg.clear();
+				user->sendReply(ERR_UNKNOWNCOMMAND(user->getNick(), cmd)); //Changer message erreur
+			}
+		}
+		else
+		{
+			msg.clear();
+			user->sendReply("Message error"); //Changer message erreur
+		}
+	}
+	user->clearMsg();
+}
+
+void	Server::_caplsCmd(User *user, std::string buf)
+{
+	if (!buf.compare("LS"))
+		return;
+	user->sendReply("Error of command"); //Changer message erreur
+}
+
+void	Server::_passCmd(User *user, std::string buf)
+{
+	if (user->hasBeenWelcomed())
+	{
+		user->sendReply("Error : user already register"); //Changer message erreur
+		return;
+	}
+	if (!buf.length())
+	{
+		user->sendReply("Error : need more info"); //Changer message erreur
+		return;
+	}
+	if (buf.compare(_password))
+	{
+		user->sendReply(ERR_PASSWDMISMATCH(user->getNick()));
+		return;
+	}
+	user->setPasswdOK(true);
+	if (user->getNick().length() && user->getUser().length())
+		user->welcome();
+}
+
+void	Server::_nickCmd(User *user, std::string buf)
+{
+	if (!buf.length())
+	{
+		user->sendReply("Error : need more info"); //Changer message erreur
+		return;
+	}
+	user->setNick(buf);
+	if (user->getUser().length() && user->getPasswdOK() && !user->hasBeenWelcomed())
+		user->welcome();
+}
+
+void	Server::_userCmd(User *user, std::string buf)
+{
+	if (!buf.length())
+	{
+		user->sendReply("Error : need more info"); //Changer message erreur
+		return;
+	}
+	if (buf.find(' ') != std::string::npos)
+		buf = buf.substr(0, buf.find(' '));
+	user->setUser(buf);
+	if (user->getNick().length() && user->getPasswdOK() && !user->hasBeenWelcomed())
+		user->welcome();
 }

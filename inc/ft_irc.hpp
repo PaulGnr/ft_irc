@@ -26,6 +26,7 @@ class Server;
 class User;
 
 #define ERR_PASSWDMISMATCH(nick) ("464 " + nick + " :Password incorrect")
+#define ERR_UNKNOWNCOMMAND(source, command)				"421 " + source + " " + command + " :Unknown command"
 
 #define BACKLOG 10
 #define DEBUG 0
