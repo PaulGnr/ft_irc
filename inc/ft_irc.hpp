@@ -26,6 +26,7 @@ class Server;
 class User;
 
 #define ERR_PASSWDMISMATCH(nick) ("464 " + nick + " :Password incorrect")
+#define ERR_UNKNOWNCOMMAND(source, command)				"421 " + source + " " + command + " :Unknown command"
 
 #define BACKLOG 10
 #define DEBUG 0
@@ -33,7 +34,7 @@ class User;
 
 void		send_msg(int fd, std::string msg);
 std::string	timestamp(void);
-void		log(std::string msg);
+void		server_log(std::string msg);
 //int		get_listener_socket(char **argv);
 
 #endif

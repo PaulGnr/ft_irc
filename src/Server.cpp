@@ -3,93 +3,182 @@
 Server::Server(std::string port, std::string password): _port(port), _password(password), _host("localhost")
 {
 	_createListener();
+	_createCmd();
 }
 
 Server::~Server()
 {}
 
 std::vector<struct pollfd>	&Server::getPfds(void) {return (_pfds);}
-std::vector<User *>			&Server::getUsers(void) {return (_users);}
+std::map<int, User *>		&Server::getUsers(void) {return (_users);}
 std::string					Server::getPort(void) const {return (_port);}
 std::string					Server::getPassword(void) const {return (_password);}
 int							Server::getListener(void) const {return (_listener);}
 
 void	Server::poll_handler(void)
 {
-	int						new_fd;
-	struct sockaddr_storage	remoteaddr;
-	socklen_t				addrlen;
-	char					remoteIP[INET6_ADDRSTRLEN];
-	char					buf[256];
+	pollfd server_fd = {_listener, POLLIN, 0};
+	_pfds.push_back(server_fd);
 
-	std::cout << "Waiting for connections..." << std::endl;
+	server_log("Waiting for clients...");
 
 	while (true)
 	{
-		int	poll_count = poll(_pfds.data(), _pfds.size(), -1);
+		// wait for incoming connections
+		poll(_pfds.data(), _pfds.size(), -1);
 
-		if (poll_count == -1)
+		for (pfds_iterator it = _pfds.begin(); it != _pfds.end(); it++)
 		{
-			std::cerr << "Error : poll : " << std::strerror(errno) << std::endl;
-			close(_listener);
-			exit(1);
-		}
-
-		for (size_t i = 0; i < _pfds.size(); ++i)
-		{
-			if (_pfds[i].revents & POLLIN)
+			if (it->revents & POLLHUP) // En fait y en a besoin avec irssi
 			{
-				if (_pfds[i].fd == _listener)
+				std::cout << "pollserver : socket " << it->fd << " hung up" << std::endl;
+				_delUser(it);
+			}
+			if (it->revents & POLLIN)
+			{
+				if (it->fd == _listener)
 				{
-					addrlen = sizeof remoteaddr;
-					new_fd = accept(_listener, (struct sockaddr *)&remoteaddr, &addrlen);
-					if (new_fd == -1)
-						std::cerr << "Error : accept : " << std::strerror(errno) << std::endl;
-					else
-					{
-						addUser(new_fd, remoteaddr);
-						char port[1000];
-						getnameinfo((struct sockaddr *)&remoteaddr, addrlen, remoteIP, INET6_ADDRSTRLEN, port, INET6_ADDRSTRLEN, 0);
-						std::cout << "New connection from " << _host << ":" << port << " on socket " << new_fd << std::endl;
-						// std::cout << inet_ntop(remoteaddr.ss_family, _get_in_addr((struct sockaddr *)&remoteaddr), remoteIP, INET6_ADDRSTRLEN);
-					}
+					_clientConnect();
+					break ;
 				}
-				else
-				{
-					int	sender_fd = _pfds[i].fd;
-					int	nbytes = 0;
-
-					_users[i - 1]->clearMessage();
-					memset(buf, 0, sizeof buf);
-					while (!std::strstr(buf, "\r\n"))
-					{
-						memset(buf, 0, sizeof buf);
-						nbytes = recv(sender_fd, buf, sizeof buf, 0);
-						if (nbytes <= 0)
-							break ;
-						_users[i - 1]->appendMessage(buf);
-					}
-
-					if (nbytes <= 0)
-					{
-						if (nbytes == 0)
-							std::cout << "pollserver : socket " << sender_fd << " hung up" << std::endl;
-						else
-							std::cerr << "recv" << std::endl;
-						delUser(i);
-					}
-					else
-					{
-						_users[i - 1]->parse_info(getPassword());
-						_sendMsg(_users[i - 1], sender_fd);
-					}
-				}
+				_clientMessage(it);
 			}
 		}
 	}
 }
 
-void	Server::addUser(int fd, struct sockaddr_storage &addr)
+void	Server::_createListener(void)
+{
+	struct	addrinfo	hint, *serv_address = NULL;
+
+	bzero(&hint, sizeof(hint));
+
+	hint.ai_family = AF_UNSPEC;
+	hint.ai_socktype = SOCK_STREAM;
+	hint.ai_flags = AI_PASSIVE;
+
+	getaddrinfo(NULL, _port.c_str(), &hint, &serv_address);
+
+	int sockfd = socket(serv_address->ai_family, serv_address->ai_socktype, serv_address->ai_protocol);
+
+	if (sockfd < 0)
+		throw std::runtime_error("Error while opening socket.");
+
+	if (bind(sockfd, serv_address->ai_addr, serv_address->ai_addrlen) < 0)
+		throw std::runtime_error("Error while binding socket.");
+
+	if (listen(sockfd, 1000) < 0)
+		throw std::runtime_error("Error while listening on socket.");
+	_listener = sockfd;
+}
+
+void	Server::_createCmd(void)
+{
+	_cmd.insert(std::make_pair("CAP", &Server::_caplsCmd));
+	_cmd.insert(std::make_pair("PASS", &Server::_passCmd));
+	_cmd.insert(std::make_pair("NICK", &Server::_nickCmd));
+	_cmd.insert(std::make_pair("USER", &Server::_userCmd));
+}
+
+void	Server::_clientConnect(void)
+{
+	int						new_fd;
+	struct sockaddr_storage	remoteaddr;
+	socklen_t				addrlen;
+	char					remoteIP[INET6_ADDRSTRLEN];
+
+	addrlen = sizeof remoteaddr;
+	new_fd = accept(_listener, (struct sockaddr *)&remoteaddr, &addrlen);
+	if (new_fd == -1)
+		std::cerr << "Error : accept : " << std::strerror(errno) << std::endl;
+	else
+	{
+		_addUser(new_fd, remoteaddr);
+		char port[1000];
+		getnameinfo((struct sockaddr *)&remoteaddr, addrlen, remoteIP, INET6_ADDRSTRLEN, port, INET6_ADDRSTRLEN, 0);
+		std::cout << "New connection from " << _host << ":" << port << " on socket " << new_fd << std::endl;
+		// std::cout << inet_ntop(remoteaddr.ss_family, _get_in_addr((struct sockaddr *)&remoteaddr), remoteIP, INET6_ADDRSTRLEN);
+	}
+}
+
+void	Server::_clientMessage(pfds_iterator &it)
+{
+	User	*user = _users.at(it->fd);
+	int		nbytes;
+	
+	nbytes = _getMessage(user);
+	// <0: error, ==0: user disconnect, >0: execute msg
+	if (nbytes <= 0)
+	{
+		if (nbytes == 0)
+			std::cout << "pollserver : socket " << it->fd << " hung up" << std::endl;
+		else
+			std::cerr << "Error : recv" << std::endl;
+		_delUser(it);
+	}
+	else
+		_handleCmd(user);
+}
+
+int	Server::_getMessage(User *user)
+{
+	int			fd = user->getFd();
+	int			nbytes = 0;
+	char		buf[1024];
+	std::string	str;
+
+	// get message
+	while (str.rfind("\r\n") != str.length() - 2 || str.length() <= 2)
+	{
+		memset(buf, 0, sizeof(buf));
+		nbytes = recv(fd, buf, sizeof(buf), 0);
+		if (nbytes <= 0)
+			break ;
+		str.append(buf);
+	}
+	user->setMessage(str);
+	return (nbytes);
+}
+
+/*
+void	Server::_clientMessage(pfds_iterator &it)
+{
+	User	*user = _users.at(it->fd);
+	char	buf[1024];
+	int		nbytes = 0;
+
+	// get message
+	user->clearMessage();
+	memset(buf, 0, sizeof(buf));
+	while (!std::strstr(buf, "\r\n"))
+	{
+		memset(buf, 0, sizeof(buf));
+		nbytes = recv(it->fd, buf, sizeof(buf), 0);
+		if (nbytes <= 0)
+			break ;
+		user->appendMessage(buf);
+	}
+
+	// <0: error, ==0: user disconnect, >0: execute msg
+	if (nbytes <= 0)
+	{
+		if (nbytes == 0)
+			std::cout << "pollserver : socket " << it->fd << " hung up" << std::endl;
+		else
+			std::cerr << "Error : recv" << std::endl;
+		_delUser(it);
+	}
+	else
+	{
+		user->parse_info(getPassword());
+		if (!user->hasBeenWelcomed())
+			_delUser(it);
+		_sendMsg(user, it->fd);
+	}
+}
+*/
+
+void	Server::_addUser(int fd, struct sockaddr_storage &addr)
 {
 	struct pollfd	pfd;
 
@@ -97,79 +186,18 @@ void	Server::addUser(int fd, struct sockaddr_storage &addr)
 	pfd.events = POLLIN;
 	pfd.revents = 0;
 	_pfds.push_back(pfd);
-	_users.push_back(new User(&(_pfds.back()), &addr));
+	_users.insert(std::make_pair(fd, new User(fd, &addr)));
 }
 
-void	Server::delUser(int i)
+void	Server::_delUser(pfds_iterator &it)
 {
-	close(_pfds[i].fd);
-	_pfds.erase(_pfds.begin() + i);
-	if (i > 0)
-		_users.erase(_users.begin() + i - 1);
-}
-
-void	Server::_createListener(void)
-{
-	struct addrinfo	hints, *servinfo, *p;
-	int				status, yes = 1;
-
-	memset(&hints, 0, sizeof hints);
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_flags = AI_PASSIVE;
-
-	if ((status = getaddrinfo(NULL, _port.c_str(), &hints, &servinfo)) != 0)
-	{
-		std::cerr << "Error : getaddrinfo : " << gai_strerror(status) << std::endl;
-		exit(1);
-	}
-
-	for (p = servinfo; p != NULL; p = p->ai_next)
-	{
-		if ((_listener = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1)
-		{
-			std::cerr << "Error : socket : " << std::strerror(errno) << std::endl;
-			continue;
-		}
-
-		if (setsockopt(_listener, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes) == -1)
-		{
-			std::cerr << "Error : setsockopt : " << std::strerror(errno) << std::endl;
-			close(_listener);
-			freeaddrinfo(servinfo);
-			exit(1);
-		}
-
-		if (bind(_listener, p->ai_addr, p->ai_addrlen) == -1)
-		{
-			std::cerr << "Error : bind : " << std::strerror(errno) << std::endl;
-			close(_listener);
-			continue;
-		}
-
-		break;
-	}
-
-	freeaddrinfo(servinfo);
-
-	if (p == NULL)
-	{
-		std::cerr << "Error : server failed to bind" << std::endl;
-		exit(1);
-	}
-
-	if (listen(_listener, BACKLOG) == -1)
-	{
-		std::cerr << "Error : listen : " << std::strerror(errno) << std::endl;
-		exit(1);
-	}
-
-	struct pollfd	pfd;
-
-	pfd.fd = _listener;
-	pfd.events = POLLIN;
-	pfd.revents = 0;
-	_pfds.push_back(pfd);
+	User	*user = _users.at(it->fd);
+	if (it->fd > 0)
+		_users.erase(it->fd);
+	close(it->fd);
+	_pfds.erase(it);
+	it--;
+	delete user;
 }
 
 void	*Server::_get_in_addr(struct sockaddr *sa)
@@ -216,4 +244,98 @@ int	Server::_sendall(int dest_fd, const char *buf, int *nbytes)
 	*nbytes = total;
 
 	return (n == -1 ? -1 : 0);
+}
+
+void	Server::_handleCmd(User *user)
+{
+	std::string	msg = user->getMessage();
+	std::string	cmd;
+	std::string	buf;
+
+	while (msg.length())
+	{
+		if (msg.find("\r\n") != std::string::npos)
+		{
+			cmd = msg.substr(0, msg.find(' '));
+			buf = msg.substr(cmd.length() + 1, msg.find("\r\n") - cmd.length() - 1);
+			try
+			{
+				(this->*(_cmd.at(cmd)))(user, buf); 
+				/* Pour au-dessus : Partie un peu tricky, en gros je sors le
+				 * pointeur sur fonction correspondant a la cmd dans la map,
+				 * ensuite je le dereference avec * et ensuite je vais chercher
+				 * la fonction qui correspond a cette instance de class Server
+				 * avec le this->, et enfin je mets les arguments que je veux
+				 * lui envoyer
+				 */
+				msg.erase(0, msg.find("\r\n") + 2);
+			}
+			catch (const std::out_of_range &e)
+			{
+				msg.clear();
+				user->sendReply(ERR_UNKNOWNCOMMAND(user->getNick(), cmd)); //Changer message erreur
+			}
+		}
+		else
+		{
+			msg.clear();
+			user->sendReply("Message error"); //Changer message erreur
+		}
+	}
+	user->clearMsg();
+}
+
+void	Server::_caplsCmd(User *user, std::string buf)
+{
+	if (!buf.compare("LS"))
+		return;
+	user->sendReply("Error of command"); //Changer message erreur
+}
+
+void	Server::_passCmd(User *user, std::string buf)
+{
+	if (user->hasBeenWelcomed())
+	{
+		user->sendReply("Error : user already register"); //Changer message erreur
+		return;
+	}
+	if (!buf.length())
+	{
+		user->sendReply("Error : need more info"); //Changer message erreur
+		return;
+	}
+	if (buf.compare(_password))
+	{
+		user->sendReply(ERR_PASSWDMISMATCH(user->getNick()));
+		return;
+	}
+	user->setPasswdOK(true);
+	if (user->getNick().length() && user->getUser().length())
+		user->welcome();
+}
+
+void	Server::_nickCmd(User *user, std::string buf)
+{
+	if (!buf.length())
+	{
+		user->sendReply("Error : need more info"); //Changer message erreur
+		return;
+	}
+	user->setNick(buf);
+	if (user->getUser().length() && user->getPasswdOK() && !user->hasBeenWelcomed())
+		user->welcome();
+}
+
+void	Server::_userCmd(User *user, std::string buf)
+{
+	if (!buf.length())
+	{
+		user->sendReply("Error : need more info"); //Changer message erreur
+		return;
+	}
+	if (buf.find(' ') != std::string::npos)
+		buf = buf.substr(0, buf.find(' '));
+	user->setUser(buf);
+	if (user->getNick().length() && user->getPasswdOK() && !user->hasBeenWelcomed())
+		user->welcome();
 }
