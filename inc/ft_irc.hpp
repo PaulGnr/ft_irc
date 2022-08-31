@@ -4,10 +4,12 @@
 #include <arpa/inet.h>
 #include <cerrno>
 #include <cstring>
+#include <string>
+#include <sstream>
 #include <ctime>
 #include <iostream>
-#include <sstream>
 #include <iomanip>
+#include <functional>
 #include <iterator>
 #include <netdb.h>
 #include <poll.h>
@@ -17,6 +19,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <vector>
+#include <map>
 
 #include "Channel.hpp"
 #include "Server.hpp"

@@ -3,6 +3,8 @@
 
 #include "ft_irc.hpp"
 
+class User;
+
 class Channel
 {
 	public:

@@ -77,6 +77,7 @@ void	Server::_createCmd(void)
 	_cmd.insert(std::make_pair("PASS", &Server::_passCmd));
 	_cmd.insert(std::make_pair("NICK", &Server::_nickCmd));
 	_cmd.insert(std::make_pair("USER", &Server::_userCmd));
+	_cmd.insert(std::make_pair("JOIN", &Server::_joinCmd));
 }
 
 void	Server::_clientConnect(void)
@@ -104,7 +105,6 @@ void	Server::_clientMessage(pfds_iterator &it)
 	User	*user = _users.at(it->fd);
 	int		nbytes;
 
-	std::cout << "debug" << std::endl;
 	nbytes = _getMessage(user);
 	if (nbytes <= 0)
 	{
@@ -267,6 +267,7 @@ void	Server::_handleCmd(User *user)
 				buf = msg.substr(cmd.length() + 1, msg.find("\r\n") - cmd.length() - 1);
 			try
 			{
+				std::cout << "try cmd: " << cmd << std::endl;
 				(this->*(_cmd.at(cmd)))(user, buf);
 				/* Pour au-dessus : Partie un peu tricky, en gros je sors le
 				 * pointeur sur fonction correspondant a la cmd dans la map,
@@ -279,6 +280,7 @@ void	Server::_handleCmd(User *user)
 			}
 			catch (const std::out_of_range &e)
 			{
+				std::cout << "fail: " << e.what() << std::endl;
 				msg.clear();
 				user->sendReply(ERR_UNKNOWNCOMMAND(user->getNickname(), cmd)); //Changer message erreur
 			}
@@ -355,4 +357,10 @@ void	Server::_userCmd(User *user, std::string buf)
 	user->setUser(buf);
 	if (user->getNickname().length() && user->getPasswdOK() && !user->hasBeenWelcomed())
 		user->welcome();
+}
+
+void	Server::_joinCmd(User *user, std::string buf)
+{
+	std::cout << "join asked with:" << buf << std::endl;
+	user->sendReply("join asked");
 }

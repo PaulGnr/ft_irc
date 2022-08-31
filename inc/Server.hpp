@@ -2,11 +2,6 @@
 # define SERVER_HPP
 
 #include "ft_irc.hpp"
-#include <arpa/inet.h>
-#include <vector>
-#include <map>
-#include <string>
-#include <functional>
 
 class User;
 
@@ -62,6 +57,7 @@ class Server
 		void	_passCmd(User *user, std::string buf);
 		void	_nickCmd(User *user, std::string buf);
 		void	_userCmd(User *user, std::string buf);
+		void	_joinCmd(User *user, std::string buf);
 };
 
 #endif
