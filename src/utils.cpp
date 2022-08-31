@@ -21,8 +21,3 @@ std::string	timestamp(void)
 
 	return (time);
 }
-
-void	server_log(std::string msg)
-{
-	std::cout << "[" << timestamp() << "] " << msg << std::endl;
-}

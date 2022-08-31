@@ -20,11 +20,10 @@ void	Server::poll_handler(void)
 	pollfd server_fd = {_listener, POLLIN, 0};
 	_pfds.push_back(server_fd);
 
-	server_log("Waiting for clients...");
+	std::cout << "Waiting for clients" << std::endl;
 
 	while (true)
 	{
-		// wait for incoming connections
 		poll(_pfds.data(), _pfds.size(), -1);
 
 		for (pfds_iterator it = _pfds.begin(); it != _pfds.end(); it++)
@@ -97,7 +96,6 @@ void	Server::_clientConnect(void)
 		char port[1000];
 		getnameinfo((struct sockaddr *)&remoteaddr, addrlen, remoteIP, INET6_ADDRSTRLEN, port, INET6_ADDRSTRLEN, 0);
 		std::cout << "New connection from " << _host << ":" << port << " on socket " << new_fd << std::endl;
-		// std::cout << inet_ntop(remoteaddr.ss_family, _get_in_addr((struct sockaddr *)&remoteaddr), remoteIP, INET6_ADDRSTRLEN);
 	}
 }
 
@@ -105,7 +103,7 @@ void	Server::_clientMessage(pfds_iterator &it)
 {
 	User	*user = _users.at(it->fd);
 	int		nbytes;
-	
+
 	nbytes = _getMessage(user);
 	// <0: error, ==0: user disconnect, >0: execute msg
 	if (nbytes <= 0)
@@ -266,7 +264,7 @@ void	Server::_handleCmd(User *user)
 				buf = msg.substr(cmd.length() + 1, msg.find("\r\n") - cmd.length() - 1);
 			try
 			{
-				(this->*(_cmd.at(cmd)))(user, buf); 
+				(this->*(_cmd.at(cmd)))(user, buf);
 				/* Pour au-dessus : Partie un peu tricky, en gros je sors le
 				 * pointeur sur fonction correspondant a la cmd dans la map,
 				 * ensuite je le dereference avec * et ensuite je vais chercher
