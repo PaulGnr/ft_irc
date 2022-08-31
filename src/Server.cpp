@@ -20,7 +20,7 @@ void	Server::poll_handler(void)
 	pollfd server_fd = {_listener, POLLIN, 0};
 	_pfds.push_back(server_fd);
 
-	std::cout << "Waiting for clients" << std::endl;
+	std::cout << "Waiting for clients..." << std::endl;
 
 	while (true)
 	{
@@ -104,13 +104,13 @@ void	Server::_clientMessage(pfds_iterator &it)
 	User	*user = _users.at(it->fd);
 	int		nbytes;
 
+	std::cout << "debug" << std::endl;
 	nbytes = _getMessage(user);
-	// <0: error, ==0: user disconnect, >0: execute msg
 	if (nbytes <= 0)
 	{
-		if (nbytes == 0)
+		if (nbytes == 0) // disconnect
 			std::cout << "pollserver : socket " << it->fd << " hung up" << std::endl;
-		else
+		else // error
 			std::cerr << "Error : recv" << std::endl;
 		_delUser(it);
 	}
@@ -248,6 +248,10 @@ void	Server::_handleCmd(User *user)
 	std::string	msg = user->getMessage();
 	std::string	cmd;
 	std::string	buf;
+
+	// std::cout << "msg:" << msg << std::endl;
+	// std::cout << "cmd:" << cmd << std::endl;
+	// std::cout << "buf:" << buf << std::endl;
 
 	while (msg.length())
 	{
