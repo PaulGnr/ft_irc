@@ -125,7 +125,6 @@ int	Server::_getMessage(User *user)
 	char		buf[1024];
 	std::string	str;
 
-	// get message
 	while (str.rfind("\r\n") != str.length() - 2 || str.length() <= 2)
 	{
 		memset(buf, 0, sizeof(buf));
