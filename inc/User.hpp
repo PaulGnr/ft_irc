@@ -10,7 +10,7 @@ class User
 		~User();
 		User(int fd, struct sockaddr_storage *addr);
 
-		void	setNick(std::string nick);
+		void	setNickname(std::string nickname);
 		void	setHostname(std::string hostname);
 		void	setUser(std::string user);
 		void	setServer(std::string server);
@@ -19,7 +19,7 @@ class User
 		void	setPasswdOK(bool passwdOK);
 		void	setAddr(struct sockaddr_storage *addr);
 
-		std::string	getNick(void) const;
+		std::string	getNickname(void) const;
 		std::string	getHostname(void) const;
 		std::string	getUser(void) const;
 		std::string	getServer(void) const;
@@ -34,7 +34,7 @@ class User
 
 	private:
 
-		std::string				_nick;
+		std::string				_nickname;
 		std::string				_hostname;
 		std::string				_user;
 		std::string				_server;

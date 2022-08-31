@@ -13,6 +13,7 @@ class User;
 class Server
 {
 	typedef std::vector<pollfd>::iterator pfds_iterator;
+	typedef std::map<int, User *>::iterator users_iterator;
 	typedef	void (Server::*fct)(User *, std::string);
 	/* Pour le typedef au-dessus : Sert pour la map _cmd, c'est un pointeur sur
 	 * fonction de Server aver en argument User * et std::string, c'est les

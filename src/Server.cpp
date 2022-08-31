@@ -256,8 +256,14 @@ void	Server::_handleCmd(User *user)
 	{
 		if (msg.find("\r\n") != std::string::npos)
 		{
-			cmd = msg.substr(0, msg.find(' '));
-			buf = msg.substr(cmd.length() + 1, msg.find("\r\n") - cmd.length() - 1);
+			if (msg.find(' ') != std::string::npos)
+				cmd = msg.substr(0, msg.find(' '));
+			else
+				cmd = msg.substr(0, msg.find("\r\n"));
+			if (cmd.length() == msg.find("\r\n"))
+				buf.clear();
+			else
+				buf = msg.substr(cmd.length() + 1, msg.find("\r\n") - cmd.length() - 1);
 			try
 			{
 				(this->*(_cmd.at(cmd)))(user, buf); 
@@ -273,7 +279,7 @@ void	Server::_handleCmd(User *user)
 			catch (const std::out_of_range &e)
 			{
 				msg.clear();
-				user->sendReply(ERR_UNKNOWNCOMMAND(user->getNick(), cmd)); //Changer message erreur
+				user->sendReply(ERR_UNKNOWNCOMMAND(user->getNickname(), cmd)); //Changer message erreur
 			}
 		}
 		else
@@ -296,21 +302,21 @@ void	Server::_passCmd(User *user, std::string buf)
 {
 	if (user->hasBeenWelcomed())
 	{
-		user->sendReply("Error : user already register"); //Changer message erreur
+		user->sendReply(ERR_ALREADYREGISTERED(user->getNickname()));
 		return;
 	}
 	if (!buf.length())
 	{
-		user->sendReply("Error : need more info"); //Changer message erreur
+		user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "PASS"));
 		return;
 	}
 	if (buf.compare(_password))
 	{
-		user->sendReply(ERR_PASSWDMISMATCH(user->getNick()));
+		user->sendReply(ERR_PASSWDMISMATCH(user->getNickname()));
 		return;
 	}
 	user->setPasswdOK(true);
-	if (user->getNick().length() && user->getUser().length())
+	if (user->getNickname().length() && user->getUser().length())
 		user->welcome();
 }
 
@@ -318,10 +324,20 @@ void	Server::_nickCmd(User *user, std::string buf)
 {
 	if (!buf.length())
 	{
-		user->sendReply("Error : need more info"); //Changer message erreur
+		user->sendReply(ERR_NONICKNAMEGIVEN(user->getNickname()));
 		return;
 	}
-	user->setNick(buf);
+	for (users_iterator it = _users.begin(); it != _users.end(); ++it)
+	{
+		/*
+		if (it->getNickname() == buf)
+		{
+			user->sendReply(ERR_NICKNAMEINUSE(user->getNickname()));
+			return;
+		}
+		*/
+	}
+	user->setNickname(buf);
 	if (user->getUser().length() && user->getPasswdOK() && !user->hasBeenWelcomed())
 		user->welcome();
 }
@@ -336,6 +352,6 @@ void	Server::_userCmd(User *user, std::string buf)
 	if (buf.find(' ') != std::string::npos)
 		buf = buf.substr(0, buf.find(' '));
 	user->setUser(buf);
-	if (user->getNick().length() && user->getPasswdOK() && !user->hasBeenWelcomed())
+	if (user->getNickname().length() && user->getPasswdOK() && !user->hasBeenWelcomed())
 		user->welcome();
 }
