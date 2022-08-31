@@ -25,8 +25,12 @@
 class Server;
 class User;
 
-#define ERR_PASSWDMISMATCH(nick) ("464 " + nick + " :Password incorrect")
-#define ERR_UNKNOWNCOMMAND(source, command)				"421 " + source + " " + command + " :Unknown command"
+#define ERR_UNKNOWNCOMMAND(nick, command)	":server 421 " + nick + " " + command + " :Unknown command"
+#define ERR_NONICKNAMEGIVEN(nick)			":server 431 " + nick + " :No nickname given"
+#define ERR_NICKNAMEINUSE(nick)				":server 433 " + nick + " :Nickname in use"
+#define ERR_NEEDMOREPARAMS(nick, command)	":server 461 " + nick + " " + command + " :Need more parameters"
+#define ERR_ALREADYREGISTERED(nick)			":server 462 " + nick + " :Already registered"
+#define ERR_PASSWDMISMATCH(nick) 			":server 464 " + nick + " :Password incorrect"
 
 #define BACKLOG 10
 #define DEBUG 0
