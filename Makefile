@@ -1,4 +1,9 @@
-SRC	= $(SRCDIR)/main.cpp $(SRCDIR)/User.cpp $(SRCDIR)/Server.cpp $(SRCDIR)/utils.cpp
+SRC	= $(SRCDIR)/main.cpp \
+		$(SRCDIR)/User.cpp \
+		$(SRCDIR)/Server.cpp \
+		$(SRCDIR)/ServerChannel.cpp \
+		$(SRCDIR)/Channel.cpp \
+		$(SRCDIR)/utils.cpp
 
 SRCDIR	= src
 
