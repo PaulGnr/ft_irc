@@ -4,8 +4,6 @@ int		Server::_chanExists(std::string name)
 {
 	for (chans_iterator it = _chans.begin(); it != _chans.end(); it++)
 	{
-		std::cout << "debug" << std::endl;
-		std::cout << "checking: " << it->second->getName() << " == " << name << std::endl;
 		if (it->second->getName() == name)
 			return (true);
 	}
@@ -18,6 +16,7 @@ void		Server::_createChan(User *user, std::string name)
 
 	std::cout << "New channel " << name << " created."  << std::endl;
 	chan->setAdmin(user);
+	chan->addUser(user->getFd(), user);
 	this->_addChannel(chan);
 }
 

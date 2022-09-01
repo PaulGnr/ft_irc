@@ -15,6 +15,7 @@ class Channel
 		std::string	getKey(void);
 
 		void		setAdmin(User *user);
+		void		addUser(int fd, User *user);
 
 	private:
 		std::map<int, User *>	_users;
