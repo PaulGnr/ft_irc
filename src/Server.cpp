@@ -137,44 +137,6 @@ int	Server::_getMessage(User *user)
 	return (nbytes);
 }
 
-/*
-void	Server::_clientMessage(pfds_iterator &it)
-{
-	User	*user = _users.at(it->fd);
-	char	buf[1024];
-	int		nbytes = 0;
-
-	// get message
-	user->clearMessage();
-	memset(buf, 0, sizeof(buf));
-	while (!std::strstr(buf, "\r\n"))
-	{
-		memset(buf, 0, sizeof(buf));
-		nbytes = recv(it->fd, buf, sizeof(buf), 0);
-		if (nbytes <= 0)
-			break ;
-		user->appendMessage(buf);
-	}
-
-	// <0: error, ==0: user disconnect, >0: execute msg
-	if (nbytes <= 0)
-	{
-		if (nbytes == 0)
-			std::cout << "pollserver : socket " << it->fd << " hung up" << std::endl;
-		else
-			std::cerr << "Error : recv" << std::endl;
-		_delUser(it);
-	}
-	else
-	{
-		user->parse_info(getPassword());
-		if (!user->hasBeenWelcomed())
-			_delUser(it);
-		_sendMsg(user, it->fd);
-	}
-}
-*/
-
 void	Server::_addUser(int fd, struct sockaddr_storage &addr)
 {
 	struct pollfd	pfd;
@@ -282,7 +244,7 @@ void	Server::_handleCmd(User *user)
 			{
 				std::cout << "fail: " << e.what() << std::endl;
 				msg.clear();
-				user->sendReply(ERR_UNKNOWNCOMMAND(user->getNickname(), cmd)); //Changer message erreur
+				user->sendReply(ERR_UNKNOWNCOMMAND(user->getNickname(), cmd));
 			}
 		}
 		else
@@ -298,7 +260,7 @@ void	Server::_caplsCmd(User *user, std::string buf)
 {
 	if (!buf.compare("LS"))
 		return;
-	user->sendReply("Error of command"); //Changer message erreur
+	user->sendReply(ERR_UNKNOWNCOMMAND(user->getNickname(), "CAP"));
 }
 
 void	Server::_passCmd(User *user, std::string buf)
@@ -332,13 +294,11 @@ void	Server::_nickCmd(User *user, std::string buf)
 	}
 	for (users_iterator it = _users.begin(); it != _users.end(); ++it)
 	{
-		/*
-		if (it->getNickname() == buf)
+		if (it->second->getNickname() == buf)
 		{
-			user->sendReply(ERR_NICKNAMEINUSE(user->getNickname()));
+			user->sendReply(ERR_NICKCOLLISION(user->getNickname()));
 			return;
 		}
-		*/
 	}
 	user->setNickname(buf);
 	if (user->getUser().length() && user->getPasswdOK() && !user->hasBeenWelcomed())
