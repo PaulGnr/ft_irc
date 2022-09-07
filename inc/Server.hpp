@@ -4,14 +4,16 @@
 #include "ft_irc.hpp"
 
 class User;
+class Channel;
 
 class Server
 {
 	typedef std::vector<pollfd>::iterator pfds_iterator;
 	typedef std::map<int, User *>::iterator users_iterator;
+	typedef std::map<std::string, Channel *>::iterator chans_iterator;
 	typedef	void (Server::*fct)(User *, std::string);
 	/* Pour le typedef au-dessus : Sert pour la map _cmd, c'est un pointeur sur
-	 * fonction de Server aver en argument User * et std::string, c'est les
+	 * fonction de Server avec en argument User * et std::string, c'est les
 	 * fonction en bas de la class
 	 */
 
@@ -28,18 +30,21 @@ class Server
 		void	poll_handler(void);
 
 	private:
-		int							_listener;
-		std::string					_port;
-		std::string					_password;
-		std::string					_host;
-		std::vector<struct pollfd>	_pfds;
-		std::map<int, User *>		_users;
-		std::map<std::string, fct>	_cmd;
+		int									_listener;
+		std::string							_port;
+		std::string							_password;
+		std::string							_host;
+		std::vector<struct pollfd>			_pfds;
+		std::map<int, User *>				_users;
+		std::map<std::string, Channel *>	_chans;
+		std::map<std::string, fct>			_cmd;
 		/* Pour au-dessus : map des cmd en fonction de la string envoye en debut
 		 * de chaque message, exemple "PASS asdf" la string sera PASS, mais la
 		 * fonction prendra en argument le user et std::string buf qui sera
 		 * buf = "asdf" pour cet exemple (voir fonction _createCmd)
 		 */
+
+		// Server related functions
 
 		void	_createListener(void);
 		void	_createCmd(void);
@@ -52,12 +57,20 @@ class Server
 		void	_sendMsg(User *user, int sender_fd);
 		int		_sendall(int dest_fd, const char *buf, int *nbytes);
 
+		// Command related functions
+
 		void	_handleCmd(User *user);
 		void	_caplsCmd(User *user, std::string buf);
 		void	_passCmd(User *user, std::string buf);
 		void	_nickCmd(User *user, std::string buf);
 		void	_userCmd(User *user, std::string buf);
 		void	_joinCmd(User *user, std::string buf);
+
+		// Channel related functions
+
+		int		_chanExists(std::string name);
+		void	_createChan(User *user, std::string name);
+		void	_addChannel(Channel *chan);
 };
 
 #endif

@@ -321,6 +321,11 @@ void	Server::_userCmd(User *user, std::string buf)
 
 void	Server::_joinCmd(User *user, std::string buf)
 {
-	std::cout << "join asked with:" << buf << std::endl;
-	user->sendReply("join asked");
+	if (!_chanExists(buf))
+		_createChan(user, buf);
+	else
+	{
+		// faire un getChannel et ajouter le user au chan
+	}
+	user->sendReply(":" + user->getNickname() + " JOIN " + buf);
 }

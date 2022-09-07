@@ -21,11 +21,12 @@
 #include <vector>
 #include <map>
 
-#include "Channel.hpp"
 #include "Server.hpp"
+#include "Channel.hpp"
 #include "User.hpp"
 
 class Server;
+class Channel;
 class User;
 
 #define ERR_UNKNOWNCOMMAND(nick, command)	":server 421 " + nick + " " + command + " :Unknown command"
@@ -40,7 +41,6 @@ class User;
 #define DEBUG 0
 #define PFDIT std::vector<struct pollfd>::iterator
 
-void		send_msg(int fd, std::string msg);
 std::string	timestamp(void);
 //int		get_listener_socket(char **argv);
 
