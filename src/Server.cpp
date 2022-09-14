@@ -77,7 +77,11 @@ void	Server::_createCmd(void)
 	_cmd.insert(std::make_pair("PASS", &Server::_passCmd));
 	_cmd.insert(std::make_pair("NICK", &Server::_nickCmd));
 	_cmd.insert(std::make_pair("USER", &Server::_userCmd));
+	_cmd.insert(std::make_pair("QUIT", &Server::_quitCmd));
+	_cmd.insert(std::make_pair("PING", &Server::_pingCmd));
+	_cmd.insert(std::make_pair("MODE", &Server::_modeCmd));
 	_cmd.insert(std::make_pair("JOIN", &Server::_joinCmd));
+	_cmd.insert(std::make_pair("PRIVMSG", &Server::_privmsgCmd));
 }
 
 void	Server::_clientConnect(void)
@@ -307,6 +311,11 @@ void	Server::_nickCmd(User *user, std::string buf)
 
 void	Server::_userCmd(User *user, std::string buf)
 {
+	if (user->hasBeenWelcomed())
+	{
+		user->sendReply(ERR_ALREADYREGISTERED(user->getNickname()));
+		return;
+	}
 	if (!buf.length())
 	{
 		user->sendReply("Error : need more info"); //Changer message erreur
@@ -319,6 +328,35 @@ void	Server::_userCmd(User *user, std::string buf)
 		user->welcome();
 }
 
+void	Server::_quitCmd(User *user, std::string buf)
+{
+	user->sendReply(RPL_QUIT(user->getNickname(), (buf.empty() ? "Leaving" : buf)));
+	close(user->getFd());
+	_users.erase(user->getFd());
+}
+
+void	Server::_pingCmd(User *user, std::string buf)
+{
+	if (buf.empty())
+	{
+		user->sendReply(ERR_NOORIGIN());
+		return;
+	}
+	if (buf != _host && buf != "server")
+	{
+		user->sendReply(ERR_NOSUCHSERVER(buf));
+		return;
+	}
+	user->sendReply(RPL_PONG(user->getNickname(), _host));
+}
+
+void	Server::_modeCmd(User *user, std::string buf)
+{
+	std::cout << "modeCmd" << std::endl;
+	(void)user;
+	(void)buf;
+}
+
 void	Server::_joinCmd(User *user, std::string buf)
 {
 	if (!_chanExists(buf))
@@ -328,4 +366,29 @@ void	Server::_joinCmd(User *user, std::string buf)
 		// faire un getChannel et ajouter le user au chan
 	}
 	user->sendReply(":" + user->getNickname() + " JOIN " + buf);
+}
+
+void	Server::_privmsgCmd(User *user, std::string buf)
+{
+	if (!user->hasBeenWelcomed())
+		return;
+	if (buf.find(':') == std::string::npos)
+	{
+		user->sendReply(ERR_NOTEXTTOSEND(user->getNickname()));
+		return;
+	}
+	std::string	msg = buf.substr(buf.find(':'));
+	std::string dest = buf.substr(0, buf.find(':'));
+	size_t		start = dest.find_first_not_of(" ");
+	
+	dest = dest.substr(start, dest.find_last_not_of(" ") - start + 1);
+	for (users_iterator it = _users.begin(); it != _users.end(); ++it)
+	{
+		if (it->second->getNickname() == dest)
+		{
+			it->second->sendReply(user->getNickname() + " " + msg);
+			return;
+		}
+	}
+	user->sendReply(ERR_NOSUCHNICK(user->getNickname()));
 }

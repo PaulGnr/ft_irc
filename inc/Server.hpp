@@ -60,11 +60,16 @@ class Server
 		// Command related functions
 
 		void	_handleCmd(User *user);
+
 		void	_caplsCmd(User *user, std::string buf);
 		void	_passCmd(User *user, std::string buf);
 		void	_nickCmd(User *user, std::string buf);
 		void	_userCmd(User *user, std::string buf);
+		void	_quitCmd(User *user, std::string buf);
+		void	_modeCmd(User *user, std::string buf);
+		void	_pingCmd(User *user, std::string buf);
 		void	_joinCmd(User *user, std::string buf);
+		void	_privmsgCmd(User *user, std::string buf);
 
 		// Channel related functions
 

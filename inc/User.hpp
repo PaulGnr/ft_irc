@@ -32,6 +32,8 @@ class User
 		void	clearMsg(void);
 		void	welcome(void);
 
+		std::string	mode;
+
 	private:
 
 		std::string				_nickname;
