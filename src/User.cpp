@@ -1,9 +1,9 @@
 #include "User.hpp"
 
-User::User(): _nickname(""), _hostname(""), _user(""), _server(""), _welcomed(false), _passwdOK(false), _addr(NULL), mode("")
+User::User(): mode(""), _nickname(""), _hostname(""), _user(""), _server(""), _welcomed(false), _passwdOK(false), _addr(NULL)
 {}
 
-User::User(int fd, struct sockaddr_storage *addr): _nickname(""), _hostname(""), _user(""), _server("localhost"), _message(""), _welcomed(false), _passwdOK(false), _fd(fd), _addr(addr), mode("")
+User::User(int fd, struct sockaddr_storage *addr): mode(""), _nickname(""), _hostname(""), _user(""), _server("localhost"), _message(""), _welcomed(false), _passwdOK(false), _fd(fd), _addr(addr)
 {}
 
 User::~User()

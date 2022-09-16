@@ -71,11 +71,20 @@ class Server
 		void	_joinCmd(User *user, std::string buf);
 		void	_privmsgCmd(User *user, std::string buf);
 
+		// Utils
+
+		void	_channelModeCmd(User *user, std::string buf);
+		void	_nickModeCmd(User *user, std::string buf);
+		bool	_wrongChannelMode(char c);
+		bool	_wrongNickMode(char c);
+
 		// Channel related functions
 
 		int		_chanExists(std::string name);
-		void	_createChan(User *user, std::string name);
+		void	_createChan(User *user, std::string name, std::string key);
 		void	_addChannel(Channel *chan);
+		std::vector<std::string>	_getChannels(std::string buf);
+		std::vector<std::string>	_getKeys(std::string buf, size_t size);
 };
 
 #endif

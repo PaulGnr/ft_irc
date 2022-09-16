@@ -13,8 +13,11 @@ class Channel
 
 		std::string	getName(void);
 		std::string	getKey(void);
+		User		*getAdmin(void);
+		std::string	getMode(void);
 
 		void		setAdmin(User *user);
+		void		setMode(std::string mode);
 		void		addUser(int fd, User *user);
 
 	private:
@@ -23,6 +26,9 @@ class Channel
 		std::string				_name;
 		std::string				_topic;
 		std::string				_key;
+		std::string				_mode;
+		std::vector<User *>		_operators;
+		std::vector<User *>		_ban;
 };
 
 #endif

@@ -350,22 +350,165 @@ void	Server::_pingCmd(User *user, std::string buf)
 	user->sendReply(RPL_PONG(user->getNickname(), _host));
 }
 
+void	Server::_channelModeCmd(User *user, std::string buf)
+{
+	std::string	chan_name = buf.substr(0, buf.find(' '));
+
+	if (!_chanExists(chan_name))
+	{
+		user->sendReply(ERR_NOSUCHNICK(chan_name));
+		return;
+	}
+	Channel	*chan = _chans[chan_name];
+	if (chan->getAdmin() != user)
+	{
+		user->sendReply(ERR_CHANOPRIVSNEEDED(chan_name));
+		return;
+	}
+	buf = buf.substr(buf.find(' ') + 1);
+	if (buf[0] != '+' && buf[0] != '-')
+	{
+		user->sendReply(ERR_UMODEUNKNOWNFLAG());
+		return;
+	}
+	size_t	i = 0;
+	std::string	mode = chan->getMode();
+	std::string	str;
+
+	if (buf[0] == '+')
+	{
+
+		while (buf[++i])
+		{
+			if (_wrongChannelMode(buf[i]))
+				user->sendReply(ERR_UNKNOWNMODE((str = buf[i])));
+			else if (mode.find(buf[i]) == std::string::npos)
+				mode.push_back(buf[i]);
+		}
+	}
+	else if (buf[0] == '-')
+	{
+		while (buf[++i])
+		{
+			if (_wrongChannelMode(buf[i]))
+				user->sendReply(ERR_UNKNOWNMODE((str = buf[i])));
+			else if (mode.find(buf[i]) != std::string::npos)
+				mode.erase(user->mode.find(buf[i]));
+		}
+	}
+	chan->setMode(mode);
+	std::cout << chan_name << "->mode : <" << mode << ">" << std::endl;
+}
+
+void	Server::_nickModeCmd(User *user, std::string buf)
+{
+	std::string	nick = buf.substr(0, buf.find(' '));
+	users_iterator	it = _users.begin();
+
+	while (it != _users.end())
+	{
+		if (it->second->getNickname() == nick)
+			break;
+		++it;
+	}
+	if (it == _users.end())
+	{
+		user->sendReply(ERR_NOSUCHNICK(nick));
+		return;
+	}
+	if (it->second != user)
+	{
+		user->sendReply(ERR_USERSDONTMATCH());
+		return;
+	}
+	buf = buf.substr(buf.find(' ') + 1);
+	if (buf[0] != '+' && buf[0] != '-')
+	{
+		user->sendReply(ERR_UMODEUNKNOWNFLAG());
+		return;
+	}
+	size_t	i = 0;
+	std::string	str;
+
+	if (buf[0] == '+')
+	{
+		while (buf[++i])
+		{
+			if (_wrongNickMode(buf[i]))
+				user->sendReply(ERR_UNKNOWNMODE((str = buf[i])));
+			else if (user->mode.find(buf[i]) == std::string::npos)
+				user->mode.push_back(buf[i]);
+		}
+	}
+	else if (buf[0] == '-')
+	{
+		while (buf[++i])
+		{
+			if (_wrongNickMode(buf[i]))
+				user->sendReply(ERR_UNKNOWNMODE((str = buf[i])));
+			else if (user->mode.find(buf[i]) != std::string::npos)
+				user->mode.erase(user->mode.find(buf[i]));
+		}
+	}
+	std::cout << nick << "->mode : <" << user->mode << ">" << std::endl;
+}
+
+bool	Server::_wrongChannelMode(char c)
+{
+	if (c == 'o' || c == 'p' || c == 's' || c == 'i' || c == 't' || c == 'n' || c == 'b' || c == 'v')
+		return (false);
+	return (true);
+}
+
+bool	Server::_wrongNickMode(char c)
+{
+	if (c == 'i' || c == 'w' || c == 's' || c == 'o')
+		return (false);
+	return (true);
+}
+
 void	Server::_modeCmd(User *user, std::string buf)
 {
-	std::cout << "modeCmd" << std::endl;
-	(void)user;
-	(void)buf;
+	std::cout << "buf : <" << buf << ">" << std::endl;
+	if (buf.find(' ') == std::string::npos)
+	{
+		user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "MODE"));
+		return;
+	}
+	if (buf[0] == '#' || buf[0] == '&')
+		_channelModeCmd(user, buf);
+	else
+		_nickModeCmd(user, buf);
 }
 
 void	Server::_joinCmd(User *user, std::string buf)
 {
-	if (!_chanExists(buf))
-		_createChan(user, buf);
-	else
+	std::cout << "buf : <" << buf << ">" << std::endl;
+	if (buf.empty())
 	{
-		// faire un getChannel et ajouter le user au chan
+		user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "JOIN"));
+		return;
 	}
-	user->sendReply(":" + user->getNickname() + " JOIN " + buf);
+	std::vector<std::string>	channels = _getChannels(buf);
+	std::vector<std::string>	keys = _getKeys(buf, channels.size());
+
+	for (std::vector<std::string>::iterator chan = channels.begin(); chan != channels.end(); ++chan)
+	{
+		if ((*chan)[0] != '#' && (*chan)[0] != '&')
+		{
+			user->sendReply(ERR_BADCHANMASK(*chan));
+			return;
+		}
+		if (!_chanExists(*chan))
+			_createChan(user, *chan, keys[chan - channels.begin()]);
+		else
+		{
+			Channel	*channel = _chans[*chan];
+
+			channel->addUser(user->getFd(), user);
+		}
+		user->sendReply(":" + user->getNickname() + " JOIN " + *chan);
+	}
 }
 
 void	Server::_privmsgCmd(User *user, std::string buf)

@@ -41,6 +41,11 @@ class User;
 #define ERR_NEEDMOREPARAMS(nick, command)	":server 461 " + nick + " " + command + " :Not enough parameters"
 #define ERR_ALREADYREGISTERED(nick)			":server 462 " + nick + " :You may not reregister"
 #define ERR_PASSWDMISMATCH(nick) 			":server 464 " + nick + " :Password incorrect"
+#define ERR_UNKNOWNMODE(mode) 				":server 472 " + mode + " :is unknown mode char to me"
+#define ERR_BADCHANMASK(channel) 			":server 476 " + channel + " :is a bad channel mask"
+#define ERR_CHANOPRIVSNEEDED(channel) 		":server 482 " + channel + " :You're not channel operator"
+#define ERR_UMODEUNKNOWNFLAG() 				":server 501 :Unknown MODE flag"
+#define ERR_USERSDONTMATCH() 				":server 502 :Cant change mode for otherusers"
 
 #define RPL_QUIT(nick, reason)			": " + nick + " QUIT :Quit: " + reason
 #define RPL_PONG(nick, server)			":" + nick + " PONG " + server
