@@ -29,26 +29,31 @@ class Server;
 class Channel;
 class User;
 
-#define ERR_NOSUCHNICK(nick)				":server 401 " + nick + " :No such nick/channel"
-#define ERR_NOSUCHSERVER(server)			":server 402 " + server + " :No such server"
-#define ERR_TOOMANYTARGETS(target)			":server 407 " + target + " :Duplicate recipients. No message delivered"
+#define ERR_NOSUCHNICK(nick)				":server 401 :" + nick + " :No such nick/channel"
+#define ERR_NOSUCHSERVER(server)			":server 402 :" + server + " :No such server"
+#define ERR_NOSUCHCHANNEL(channel)			":server 403 :" + channel + " :No such channel"
+#define ERR_TOOMANYTARGETS(target)			":server 407 :" + target + " :Duplicate recipients. No message delivered"
 #define ERR_NOORIGIN()						":server 409 :No origin specified"
-#define ERR_NOTEXTTOSEND(nick)				":server 412 " + nick + " :No text to send"
-#define ERR_UNKNOWNCOMMAND(nick, command)	":server 421 " + nick + " " + command + " :Unknown command"
-#define ERR_NONICKNAMEGIVEN(nick)			":server 431 " + nick + " :No nickname given"
-#define ERR_NICKNAMEINUSE(nick)				":server 433 " + nick + " :Nickname is already in use"
-#define ERR_NICKCOLLISION(nick)				":server 436 " + nick + " :Nickname collision KILL"
-#define ERR_NEEDMOREPARAMS(nick, command)	":server 461 " + nick + " " + command + " :Not enough parameters"
-#define ERR_ALREADYREGISTERED(nick)			":server 462 " + nick + " :You may not reregister"
-#define ERR_PASSWDMISMATCH(nick) 			":server 464 " + nick + " :Password incorrect"
-#define ERR_UNKNOWNMODE(mode) 				":server 472 " + mode + " :is unknown mode char to me"
-#define ERR_BADCHANMASK(channel) 			":server 476 " + channel + " :is a bad channel mask"
-#define ERR_CHANOPRIVSNEEDED(channel) 		":server 482 " + channel + " :You're not channel operator"
+#define ERR_NOTEXTTOSEND(nick)				":server 412 :" + nick + " :No text to send"
+#define ERR_UNKNOWNCOMMAND(nick, command)	":server 421 :" + nick + " " + command + " :Unknown command"
+#define ERR_NONICKNAMEGIVEN(nick)			":server 431 :" + nick + " :No nickname given"
+#define ERR_NICKNAMEINUSE(nick)				":server 433 :" + nick + " :Nickname is already in use"
+#define ERR_NICKCOLLISION(nick)				":server 436 :" + nick + " :Nickname collision KILL"
+#define ERR_NOTONCHANNEL(channel)			":server 442 :" + channel + " :You're not on that channel"
+#define ERR_NEEDMOREPARAMS(nick, command)	":server 461 :" + nick + " " + command + " :Not enough parameters"
+#define ERR_ALREADYREGISTERED(nick)			":server 462 :" + nick + " :You may not reregister"
+#define ERR_PASSWDMISMATCH(nick) 			":server 464 :" + nick + " :Password incorrect"
+#define ERR_UNKNOWNMODE(mode) 				":server 472 :" + mode + " :is unknown mode char to me"
+#define ERR_BADCHANMASK(channel) 			":server 476 :" + channel + " :is a bad channel mask"
+#define ERR_CHANOPRIVSNEEDED(channel) 		":server 482 :" + channel + " :You're not channel operator"
 #define ERR_UMODEUNKNOWNFLAG() 				":server 501 :Unknown MODE flag"
 #define ERR_USERSDONTMATCH() 				":server 502 :Cant change mode for otherusers"
 
-#define RPL_QUIT(nick, reason)			": " + nick + " QUIT :Quit: " + reason
+#define RPL_JOIN(nick, channel)			":" + nick + " JOIN :" + channel
+#define RPL_PART(nick, channel)			":" + nick + " PART :" + channel
 #define RPL_PONG(nick, server)			":" + nick + " PONG " + server
+#define RPL_PRIVMSG(nick, channel, msg)	":" + nick + " PRIVMSG " + channel + " :" + msg
+#define RPL_QUIT(nick, reason)			": " + nick + " QUIT :Quit: " + reason
 
 #define BACKLOG 10
 #define DEBUG 0

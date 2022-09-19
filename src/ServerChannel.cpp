@@ -10,14 +10,15 @@ int		Server::_chanExists(std::string name)
 	return (false);
 }
 
-void		Server::_createChan(User *user, std::string name, std::string key)
+Channel		*Server::_createChan(User *user, std::string name, std::string key)
 {
 	Channel	*chan = new Channel(name, key);
 
 	std::cout << "New channel " << name << " created."  << std::endl;
 	chan->setAdmin(user);
-	chan->addUser(user->getFd(), user);
+	chan->addUser(user);
 	this->_addChannel(chan);
+	return (chan);
 }
 
 void	Server::_addChannel(Channel *chan) {

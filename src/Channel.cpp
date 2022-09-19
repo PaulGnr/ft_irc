@@ -13,7 +13,6 @@ Channel::~Channel(void)
 
 void	Channel::setAdmin(User *user)
 {
-	std::cout << user->getNickname() << " is the new admin of " << _name << std::endl;
 	_admin = user;
 	_operators.push_back(user);
 }
@@ -23,7 +22,33 @@ void	Channel::setMode(std::string mode)
 	_mode = mode;
 }
 
-void	Channel::addUser(int fd, User *user)
+void	Channel::addUser(User *user)
 {
-	this->_users.insert(std::pair<int, User *>(fd, user));
+	this->_users.insert(std::pair<std::string, User *>(user->getNickname(), user));
+}
+
+bool	Channel::userIsIn(User *user)
+{
+	try
+	{
+		_users.at(user->getNickname());
+		return (true);
+	}
+	catch (const std::out_of_range &e)
+	{
+		return (false);
+	}
+}
+
+void	Channel::broadcast(User *user, std::string msg, bool priv)
+{
+	std::string	nick = user->getNickname();
+
+	for (users_iterator it = _users.begin(); it != _users.end(); ++it)
+	{
+		if (priv)
+			it->second->sendReply(RPL_PRIVMSG(nick, _name, msg));
+		else
+			it->second->sendReply(msg);
+	}
 }

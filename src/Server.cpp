@@ -56,7 +56,8 @@ void	Server::_createListener(void)
 	hint.ai_socktype = SOCK_STREAM;
 	hint.ai_flags = AI_PASSIVE;
 
-	getaddrinfo(NULL, _port.c_str(), &hint, &serv_address);
+	if (getaddrinfo(NULL, _port.c_str(), &hint, &serv_address))
+		throw std::runtime_error("Error while getting address info.");
 
 	int sockfd = socket(serv_address->ai_family, serv_address->ai_socktype, serv_address->ai_protocol);
 
@@ -81,6 +82,7 @@ void	Server::_createCmd(void)
 	_cmd.insert(std::make_pair("PING", &Server::_pingCmd));
 	_cmd.insert(std::make_pair("MODE", &Server::_modeCmd));
 	_cmd.insert(std::make_pair("JOIN", &Server::_joinCmd));
+	_cmd.insert(std::make_pair("PART", &Server::_partCmd));
 	_cmd.insert(std::make_pair("PRIVMSG", &Server::_privmsgCmd));
 }
 
@@ -247,7 +249,7 @@ void	Server::_handleCmd(User *user)
 			catch (const std::out_of_range &e)
 			{
 				std::cout << "fail: " << e.what() << std::endl;
-				msg.clear();
+				msg.erase(0, msg.find("\r\n") + 2);
 				user->sendReply(ERR_UNKNOWNCOMMAND(user->getNickname(), cmd));
 			}
 		}
@@ -262,7 +264,7 @@ void	Server::_handleCmd(User *user)
 
 void	Server::_caplsCmd(User *user, std::string buf)
 {
-	if (!buf.compare("LS"))
+	if (buf == "LS")
 		return;
 	user->sendReply(ERR_UNKNOWNCOMMAND(user->getNickname(), "CAP"));
 }
@@ -491,6 +493,7 @@ void	Server::_joinCmd(User *user, std::string buf)
 	}
 	std::vector<std::string>	channels = _getChannels(buf);
 	std::vector<std::string>	keys = _getKeys(buf, channels.size());
+	Channel						*channel;
 
 	for (std::vector<std::string>::iterator chan = channels.begin(); chan != channels.end(); ++chan)
 	{
@@ -499,15 +502,70 @@ void	Server::_joinCmd(User *user, std::string buf)
 			user->sendReply(ERR_BADCHANMASK(*chan));
 			return;
 		}
-		if (!_chanExists(*chan))
-			_createChan(user, *chan, keys[chan - channels.begin()]);
+		try
+		{
+			channel = _chans.at(*chan);
+			channel->addUser(user);
+		}
+		catch (const std::out_of_range &e)
+		{
+			channel = _createChan(user, *chan, keys[chan - channels.begin()]);
+		}
+		channel->broadcast(user, RPL_JOIN(user->getNickname(), *chan), false);
+	}
+}
+
+void	Server::_partCmd(User *user, std::string buf)
+{
+	std::string	channel_name;
+	Channel		*channel;
+
+	if (buf.find(' ') != std::string::npos)
+		channel_name = buf.substr(0, buf.find(' '));
+	else
+		channel_name = buf;
+	try
+	{
+		channel = _chans.at(channel_name);
+		if (channel->userIsIn(user))
+			channel->broadcast(user, RPL_PART(user->getNickname(), channel_name), false);
 		else
 		{
-			Channel	*channel = _chans[*chan];
-
-			channel->addUser(user->getFd(), user);
+			user->sendReply(ERR_NOTONCHANNEL(channel_name));
 		}
-		user->sendReply(":" + user->getNickname() + " JOIN " + *chan);
+	}
+	catch (const std::out_of_range &e)
+	{
+		user->sendReply(ERR_NOSUCHCHANNEL(channel_name));
+	}
+}
+
+void	Server::_msgToUser(User *user, std::string dest, std::string msg)
+{
+	std::string	nick = user->getNickname();
+
+	for (users_iterator it = _users.begin(); it != _users.end(); ++it)
+	{
+		if (it->second->getNickname() == dest)
+		{
+			it->second->sendReply(RPL_PRIVMSG(nick, dest, msg));
+			return;
+		}
+	}
+	user->sendReply(ERR_NOSUCHNICK(user->getNickname()));
+}
+
+void	Server::_msgToChannel(User *user, std::string dest, std::string msg)
+{
+	try
+	{
+		Channel	*channel = _chans.at(dest);
+
+		channel->broadcast(user, msg, true);
+	}
+	catch (const std::out_of_range &e)
+	{
+		user->sendReply(ERR_NOSUCHCHANNEL(dest));
 	}
 }
 
@@ -520,18 +578,13 @@ void	Server::_privmsgCmd(User *user, std::string buf)
 		user->sendReply(ERR_NOTEXTTOSEND(user->getNickname()));
 		return;
 	}
-	std::string	msg = buf.substr(buf.find(':'));
+	std::string	msg = buf.substr(buf.find(':') + 1);
 	std::string dest = buf.substr(0, buf.find(':'));
 	size_t		start = dest.find_first_not_of(" ");
 	
 	dest = dest.substr(start, dest.find_last_not_of(" ") - start + 1);
-	for (users_iterator it = _users.begin(); it != _users.end(); ++it)
-	{
-		if (it->second->getNickname() == dest)
-		{
-			it->second->sendReply(user->getNickname() + " " + msg);
-			return;
-		}
-	}
-	user->sendReply(ERR_NOSUCHNICK(user->getNickname()));
+	if (dest[0] == '#' || dest[0] == '&')
+		_msgToChannel(user, dest, msg);
+	else
+		_msgToUser(user, dest, msg);
 }

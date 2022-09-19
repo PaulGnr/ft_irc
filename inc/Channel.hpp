@@ -7,6 +7,8 @@ class User;
 
 class Channel
 {
+	typedef	std::map<std::string, User *>::iterator users_iterator;
+
 	public:
 		Channel(const std::string &name, const std::string &key);
 		~Channel(void);
@@ -18,10 +20,15 @@ class Channel
 
 		void		setAdmin(User *user);
 		void		setMode(std::string mode);
-		void		addUser(int fd, User *user);
+
+		void		addUser(User *user);
+		void		delUser(User *user);
+		bool		userIsIn(User *user);
+
+		void		broadcast(User *user, std::string msg, bool priv); 
 
 	private:
-		std::map<int, User *>	_users;
+		std::map<std::string, User *>	_users;
 		User					*_admin;
 		std::string				_name;
 		std::string				_topic;
