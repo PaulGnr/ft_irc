@@ -1,9 +1,13 @@
 #include "Server.hpp"
 
+Server::Server() : _port(""), _password(""), _host("")
+{}
+
 Server::Server(std::string port, std::string password): _port(port), _password(password), _host("localhost")
 {
 	_createListener();
 	_createCmd();
+	_poll_handler();
 }
 
 Server::~Server()
@@ -15,7 +19,7 @@ std::string					Server::getPort(void) const {return (_port);}
 std::string					Server::getPassword(void) const {return (_password);}
 int							Server::getListener(void) const {return (_listener);}
 
-void	Server::poll_handler(void)
+void	Server::_poll_handler(void)
 {
 	pollfd server_fd = {_listener, POLLIN, 0};
 	_pfds.push_back(server_fd);
@@ -581,7 +585,7 @@ void	Server::_privmsgCmd(User *user, std::string buf)
 	std::string	msg = buf.substr(buf.find(':') + 1);
 	std::string dest = buf.substr(0, buf.find(':'));
 	size_t		start = dest.find_first_not_of(" ");
-	
+
 	dest = dest.substr(start, dest.find_last_not_of(" ") - start + 1);
 	if (dest[0] == '#' || dest[0] == '&')
 		_msgToChannel(user, dest, msg);

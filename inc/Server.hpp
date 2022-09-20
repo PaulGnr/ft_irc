@@ -18,6 +18,7 @@ class Server
 	 */
 
 	public:
+		Server();
 		Server(std::string port, std::string password);
 		~Server();
 
@@ -26,8 +27,6 @@ class Server
 		std::string					getPort(void) const;
 		std::string					getPassword(void) const;
 		int							getListener(void) const;
-
-		void	poll_handler(void);
 
 	private:
 		int									_listener;
@@ -46,6 +45,7 @@ class Server
 
 		// Server related functions
 
+		void	_poll_handler(void);
 		void	_createListener(void);
 		void	_createCmd(void);
 		void	_clientConnect(void);

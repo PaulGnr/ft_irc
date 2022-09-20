@@ -27,7 +27,7 @@ int	main(int argc, char **argv)
 		std::cerr << "Error : Wrong number of arguments." << std::endl;
 		return (1);
 	}
-	
+
 	if (!portIsOK(argv[1]))
 	{
 		std::cerr << "Error : Bad port number." << std::endl;
@@ -36,7 +36,6 @@ int	main(int argc, char **argv)
 	try
 	{
 		Server	server(argv[1], argv[2]);
-		server.poll_handler();
 	}
 	catch (const std::runtime_error &e)
 	{
