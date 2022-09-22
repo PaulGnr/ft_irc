@@ -38,6 +38,7 @@ class Server
 		std::map<int, User *>				_users;
 		std::map<std::string, Channel *>	_chans;
 		std::map<std::string, fct>			_cmd;
+		std::map<char, void (Server::*const)(char, Channel *, User *, std::string)>			_chanModeOption;
 		/* Pour au-dessus : map des cmd en fonction de la string envoye en debut
 		 * de chaque message, exemple "PASS asdf" la string sera PASS, mais la
 		 * fonction prendra en argument le user et std::string buf qui sera
@@ -56,6 +57,7 @@ class Server
 		void*	_get_in_addr(struct sockaddr *sa);
 		void	_sendMsg(User *user, int sender_fd);
 		int		_sendall(int dest_fd, const char *buf, int *nbytes);
+		User*	_getUserByNick(std::string nick);
 
 		// Command related functions
 
@@ -72,20 +74,33 @@ class Server
 		void	_partCmd(User *user, std::string buf);
 		void	_privmsgCmd(User *user, std::string buf);
 
-		// Utils
+		// Mode Cmd
 
+		void	_createModeOption(void);
 		void	_channelModeCmd(User *user, std::string buf);
-		void	_nickModeCmd(User *user, std::string buf);
-		bool	_wrongChannelMode(char c);
-		bool	_wrongNickMode(char c);
+
+		void	_chanModeO(char sign, Channel *channel, User *user, std::string buf);
+		void	_chanModeP(char sign, Channel *channel, User *user, std::string buf);
+		void	_chanModeS(char sign, Channel *channel, User *user, std::string buf);
+		void	_chanModeI(char sign, Channel *channel, User *user, std::string buf);
+		void	_chanModeT(char sign, Channel *channel, User *user, std::string buf);
+		void	_chanModeN(char sign, Channel *channel, User *user, std::string buf);
+		void	_chanModeM(char sign, Channel *channel, User *user, std::string buf);
+		void	_chanModeL(char sign, Channel *channel, User *user, std::string buf);
+
+
+		void	_userModeCmd(User *user, std::string buf);
+
+		// Privmsg Cmd
+
 		void	_msgToUser(User *user, std::string dest, std::string msg);
 		void	_msgToChannel(User *user, std::string dest, std::string msg);
 
 		// Channel related functions
 
-		int		_chanExists(std::string name);
-		Channel	*_createChan(User *user, std::string name, std::string key);
-		void	_addChannel(Channel *chan);
+		int							_chanExists(std::string name);
+		Channel*					_createChan(User *user, std::string name, std::string key);
+		void						_addChannel(Channel *chan);
 		std::vector<std::string>	_getChannels(std::string buf);
 		std::vector<std::string>	_getKeys(std::string buf, size_t size);
 };

@@ -4,6 +4,7 @@ Server::Server(std::string port, std::string password): _port(port), _password(p
 {
 	_createListener();
 	_createCmd();
+	_createModeOption();
 }
 
 Server::~Server()
@@ -211,15 +212,23 @@ int	Server::_sendall(int dest_fd, const char *buf, int *nbytes)
 	return (n == -1 ? -1 : 0);
 }
 
+User	*Server::_getUserByNick(std::string nick)
+{
+	users_iterator	it;
+
+	for (it = _users.begin(); it != _users.end(); ++it)
+	{
+		if (it->second->getNickname() == nick)
+			break;
+	}
+	return (it->second);
+}
+
 void	Server::_handleCmd(User *user)
 {
 	std::string	msg = user->getMessage();
 	std::string	cmd;
 	std::string	buf;
-
-	// std::cout << "msg:" << msg << std::endl;
-	// std::cout << "cmd:" << cmd << std::endl;
-	// std::cout << "buf:" << buf << std::endl;
 
 	while (msg.length())
 	{
@@ -264,28 +273,18 @@ void	Server::_handleCmd(User *user)
 
 void	Server::_caplsCmd(User *user, std::string buf)
 {
-	if (buf == "LS")
-		return;
-	user->sendReply(ERR_UNKNOWNCOMMAND(user->getNickname(), "CAP"));
+	if (buf != "LS")
+		return (user->sendReply(ERR_UNKNOWNCOMMAND(user->getNickname(), "CAP")));
 }
 
 void	Server::_passCmd(User *user, std::string buf)
 {
 	if (user->hasBeenWelcomed())
-	{
-		user->sendReply(ERR_ALREADYREGISTERED(user->getNickname()));
-		return;
-	}
+		return (user->sendReply(ERR_ALREADYREGISTERED(user->getNickname())));
 	if (!buf.length())
-	{
-		user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "PASS"));
-		return;
-	}
+		return (user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "PASS")));
 	if (buf.compare(_password))
-	{
-		user->sendReply(ERR_PASSWDMISMATCH(user->getNickname()));
-		return;
-	}
+		return (user->sendReply(ERR_PASSWDMISMATCH(user->getNickname())));
 	user->setPasswdOK(true);
 	if (user->getNickname().length() && user->getUser().length())
 		user->welcome();
@@ -293,18 +292,12 @@ void	Server::_passCmd(User *user, std::string buf)
 
 void	Server::_nickCmd(User *user, std::string buf)
 {
-	if (!buf.length())
-	{
-		user->sendReply(ERR_NONICKNAMEGIVEN(user->getNickname()));
-		return;
-	}
+	if (buf.empty())
+		return (user->sendReply(ERR_NONICKNAMEGIVEN(user->getNickname())));
 	for (users_iterator it = _users.begin(); it != _users.end(); ++it)
 	{
 		if (it->second->getNickname() == buf)
-		{
-			user->sendReply(ERR_NICKCOLLISION(user->getNickname()));
-			return;
-		}
+			return (user->sendReply(ERR_NICKCOLLISION(user->getNickname())));
 	}
 	user->setNickname(buf);
 	if (user->getUser().length() && user->getPasswdOK() && !user->hasBeenWelcomed())
@@ -314,15 +307,9 @@ void	Server::_nickCmd(User *user, std::string buf)
 void	Server::_userCmd(User *user, std::string buf)
 {
 	if (user->hasBeenWelcomed())
-	{
-		user->sendReply(ERR_ALREADYREGISTERED(user->getNickname()));
-		return;
-	}
-	if (!buf.length())
-	{
-		user->sendReply("Error : need more info"); //Changer message erreur
-		return;
-	}
+		return (user->sendReply(ERR_ALREADYREGISTERED(user->getNickname())));
+	if (buf.empty())
+		return (user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "USER")));
 	if (buf.find(' ') != std::string::npos)
 		buf = buf.substr(0, buf.find(' '));
 	user->setUser(buf);
@@ -340,157 +327,29 @@ void	Server::_quitCmd(User *user, std::string buf)
 void	Server::_pingCmd(User *user, std::string buf)
 {
 	if (buf.empty())
-	{
-		user->sendReply(ERR_NOORIGIN());
-		return;
-	}
-	if (buf != _host && buf != "server")
-	{
-		user->sendReply(ERR_NOSUCHSERVER(buf));
-		return;
-	}
+		return (user->sendReply(ERR_NOORIGIN()));
+	if (buf != _host && buf != "IRC")
+		return (user->sendReply(ERR_NOSUCHSERVER(buf)));
 	user->sendReply(RPL_PONG(user->getNickname(), _host));
-}
-
-void	Server::_channelModeCmd(User *user, std::string buf)
-{
-	std::string	chan_name = buf.substr(0, buf.find(' '));
-
-	if (!_chanExists(chan_name))
-	{
-		user->sendReply(ERR_NOSUCHNICK(chan_name));
-		return;
-	}
-	Channel	*chan = _chans[chan_name];
-	if (chan->getAdmin() != user)
-	{
-		user->sendReply(ERR_CHANOPRIVSNEEDED(chan_name));
-		return;
-	}
-	buf = buf.substr(buf.find(' ') + 1);
-	if (buf[0] != '+' && buf[0] != '-')
-	{
-		user->sendReply(ERR_UMODEUNKNOWNFLAG());
-		return;
-	}
-	size_t	i = 0;
-	std::string	mode = chan->getMode();
-	std::string	str;
-
-	if (buf[0] == '+')
-	{
-
-		while (buf[++i])
-		{
-			if (_wrongChannelMode(buf[i]))
-				user->sendReply(ERR_UNKNOWNMODE((str = buf[i])));
-			else if (mode.find(buf[i]) == std::string::npos)
-				mode.push_back(buf[i]);
-		}
-	}
-	else if (buf[0] == '-')
-	{
-		while (buf[++i])
-		{
-			if (_wrongChannelMode(buf[i]))
-				user->sendReply(ERR_UNKNOWNMODE((str = buf[i])));
-			else if (mode.find(buf[i]) != std::string::npos)
-				mode.erase(user->mode.find(buf[i]));
-		}
-	}
-	chan->setMode(mode);
-	std::cout << chan_name << "->mode : <" << mode << ">" << std::endl;
-}
-
-void	Server::_nickModeCmd(User *user, std::string buf)
-{
-	std::string	nick = buf.substr(0, buf.find(' '));
-	users_iterator	it = _users.begin();
-
-	while (it != _users.end())
-	{
-		if (it->second->getNickname() == nick)
-			break;
-		++it;
-	}
-	if (it == _users.end())
-	{
-		user->sendReply(ERR_NOSUCHNICK(nick));
-		return;
-	}
-	if (it->second != user)
-	{
-		user->sendReply(ERR_USERSDONTMATCH());
-		return;
-	}
-	buf = buf.substr(buf.find(' ') + 1);
-	if (buf[0] != '+' && buf[0] != '-')
-	{
-		user->sendReply(ERR_UMODEUNKNOWNFLAG());
-		return;
-	}
-	size_t	i = 0;
-	std::string	str;
-
-	if (buf[0] == '+')
-	{
-		while (buf[++i])
-		{
-			if (_wrongNickMode(buf[i]))
-				user->sendReply(ERR_UNKNOWNMODE((str = buf[i])));
-			else if (user->mode.find(buf[i]) == std::string::npos)
-				user->mode.push_back(buf[i]);
-		}
-	}
-	else if (buf[0] == '-')
-	{
-		while (buf[++i])
-		{
-			if (_wrongNickMode(buf[i]))
-				user->sendReply(ERR_UNKNOWNMODE((str = buf[i])));
-			else if (user->mode.find(buf[i]) != std::string::npos)
-				user->mode.erase(user->mode.find(buf[i]));
-		}
-	}
-	std::cout << nick << "->mode : <" << user->mode << ">" << std::endl;
-}
-
-bool	Server::_wrongChannelMode(char c)
-{
-	if (c == 'o' || c == 'p' || c == 's' || c == 'i' || c == 't' || c == 'n' || c == 'b' || c == 'v')
-		return (false);
-	return (true);
-}
-
-bool	Server::_wrongNickMode(char c)
-{
-	if (c == 'i' || c == 'w' || c == 's' || c == 'o')
-		return (false);
-	return (true);
 }
 
 void	Server::_modeCmd(User *user, std::string buf)
 {
 	std::cout << "buf : <" << buf << ">" << std::endl;
-	if (buf.find(' ') == std::string::npos)
-	{
+	if (buf.empty())
 		user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "MODE"));
-		return;
-	}
-	if (buf[0] == '#' || buf[0] == '&')
+	else if (buf[0] == '#' || buf[0] == '&')
 		_channelModeCmd(user, buf);
 	else
-		_nickModeCmd(user, buf);
+		_userModeCmd(user, buf);
 }
 
 void	Server::_joinCmd(User *user, std::string buf)
 {
-	std::cout << "buf : <" << buf << ">" << std::endl;
-	if (buf.empty())
-	{
-		user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "JOIN"));
+	if (!user->hasBeenWelcomed())
 		return;
-	}
+	if (buf.empty())
+		return (user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "JOIN")));
 	std::vector<std::string>	channels = _getChannels(buf);
 	std::vector<std::string>	keys = _getKeys(buf, channels.size());
 	Channel						*channel;
@@ -498,25 +357,36 @@ void	Server::_joinCmd(User *user, std::string buf)
 	for (std::vector<std::string>::iterator chan = channels.begin(); chan != channels.end(); ++chan)
 	{
 		if ((*chan)[0] != '#' && (*chan)[0] != '&')
-		{
-			user->sendReply(ERR_BADCHANMASK(*chan));
-			return;
-		}
+			return (user->sendReply(ERR_BADCHANMASK(*chan)));
 		try
 		{
 			channel = _chans.at(*chan);
-			channel->addUser(user);
+			if (channel->isInviteOnly())
+			{
+				user->sendReply(ERR_INVITEONLYCHAN(channel->getName()));
+				break;
+			}
+			if (channel->isFull())
+			{
+				user->sendReply(ERR_CHANNELISFULL(channel->getName()));
+				break;
+			}
+			else
+				channel->addUser(user);
 		}
 		catch (const std::out_of_range &e)
 		{
 			channel = _createChan(user, *chan, keys[chan - channels.begin()]);
 		}
 		channel->broadcast(user, RPL_JOIN(user->getNickname(), *chan), false);
+		//Ajouter RPL_TOPIC et RPL_NAMREPLY
 	}
 }
 
 void	Server::_partCmd(User *user, std::string buf)
 {
+	if (!user->hasBeenWelcomed())
+		return;
 	std::string	channel_name;
 	Channel		*channel;
 
@@ -528,11 +398,17 @@ void	Server::_partCmd(User *user, std::string buf)
 	{
 		channel = _chans.at(channel_name);
 		if (channel->userIsIn(user))
-			channel->broadcast(user, RPL_PART(user->getNickname(), channel_name), false);
-		else
 		{
-			user->sendReply(ERR_NOTONCHANNEL(channel_name));
+			channel->broadcast(user, RPL_PART(user->getNickname(), channel_name), false);
+			channel->delUser(user);
+			if (channel->isEmpty())
+			{
+				_chans.erase(channel_name);
+				delete channel;
+			}
 		}
+		else
+			user->sendReply(ERR_NOTONCHANNEL(channel_name));
 	}
 	catch (const std::out_of_range &e)
 	{
@@ -547,10 +423,7 @@ void	Server::_msgToUser(User *user, std::string dest, std::string msg)
 	for (users_iterator it = _users.begin(); it != _users.end(); ++it)
 	{
 		if (it->second->getNickname() == dest)
-		{
-			it->second->sendReply(RPL_PRIVMSG(nick, dest, msg));
-			return;
-		}
+			return (it->second->sendReply(RPL_PRIVMSG(nick, dest, msg)));
 	}
 	user->sendReply(ERR_NOSUCHNICK(user->getNickname()));
 }
@@ -561,6 +434,8 @@ void	Server::_msgToChannel(User *user, std::string dest, std::string msg)
 	{
 		Channel	*channel = _chans.at(dest);
 
+		if (!channel->userIsIn(user) && channel->isNoOutside())
+			return (user->sendReply(ERR_CANNOTSENDTOCHAN(dest)));
 		channel->broadcast(user, msg, true);
 	}
 	catch (const std::out_of_range &e)
@@ -574,10 +449,7 @@ void	Server::_privmsgCmd(User *user, std::string buf)
 	if (!user->hasBeenWelcomed())
 		return;
 	if (buf.find(':') == std::string::npos)
-	{
-		user->sendReply(ERR_NOTEXTTOSEND(user->getNickname()));
-		return;
-	}
+		return (user->sendReply(ERR_NOTEXTTOSEND(user->getNickname())));
 	std::string	msg = buf.substr(buf.find(':') + 1);
 	std::string dest = buf.substr(0, buf.find(':'));
 	size_t		start = dest.find_first_not_of(" ");

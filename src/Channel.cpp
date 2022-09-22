@@ -1,37 +1,44 @@
 #include "Channel.hpp"
 
-std::string	Channel::getName(void) {return (_name);}
-std::string	Channel::getKey(void) {return (_key);}
-User		*Channel::getAdmin(void) {return (_admin);}
-std::string	Channel::getMode(void) {return (_mode);}
-
-Channel::Channel(const std::string &name, const std::string &key) : _name(name), _key(key)
+Channel::Channel(const std::string &name, const std::string &key) : _name(name), _key(key), _limit(-1)
 {}
 
 Channel::~Channel(void)
 {}
 
-void	Channel::setAdmin(User *user)
-{
-	_admin = user;
-	_operators.push_back(user);
-}
+std::string	Channel::getName(void) {return (_name);}
+std::string	Channel::getKey(void) {return (_key);}
+std::string	Channel::getMode(void) {return (_mode);}
 
-void	Channel::setMode(std::string mode)
-{
-	_mode = mode;
-}
+void	Channel::setKey(std::string key) {_key = key;}
+void	Channel::setLimit(size_t limit) {_limit = limit;}
 
 void	Channel::addUser(User *user)
 {
-	this->_users.insert(std::pair<std::string, User *>(user->getNickname(), user));
+	this->_users.insert(std::make_pair(user->getFd(), user));
+}
+
+void	Channel::delUser(User *user)
+{
+	_users.erase(user->getFd());
+	_operators.erase(user->getFd());
+}
+
+void	Channel::addOperator(User *user)
+{
+	_operators.insert(std::make_pair(user->getFd(), user));
+}
+
+void	Channel::delOperator(User *user)
+{
+	_operators.erase(user->getFd());
 }
 
 bool	Channel::userIsIn(User *user)
 {
 	try
 	{
-		_users.at(user->getNickname());
+		_users.at(user->getFd());
 		return (true);
 	}
 	catch (const std::out_of_range &e)
@@ -40,15 +47,100 @@ bool	Channel::userIsIn(User *user)
 	}
 }
 
+bool	Channel::userIsOperator(User *user)
+{
+	try
+	{
+		_operators.at(user->getFd());
+		return (true);
+	}
+	catch (const std::out_of_range &e)
+	{
+		return (false);
+	}
+}
+
+bool	Channel::isEmpty()
+{
+	if (_users.size())
+		return (false);
+	return (true);
+}
+
+void	Channel::addMode(char c)
+{
+	if (_mode.find(c) == std::string::npos)
+		_mode.append(1, c);
+}
+
+void	Channel::delMode(char c)
+{
+	if (_mode.find(c) != std::string::npos)
+		_mode.erase(_mode.find(c));
+}
+
+void	Channel::addModerate(User* user)
+{
+	_moderate.insert(std::make_pair(user->getFd(), user));
+}
+
+bool	Channel::wrongMode(char c)
+{
+	if (c == 'o' || c == 'p' || c == 's' || c == 'i' || c == 't' || c == 'n' || c == 'b' || c == 'v')
+		return (false);
+	return (true);
+}
+
+bool	Channel::isInviteOnly(void)
+{
+	if (_mode.find('i') != std::string::npos)
+		return (true);
+	return (false);
+}
+
+bool	Channel::isNoOutside(void)
+{
+	if (_mode.find('n') != std::string::npos)
+		return (true);
+	return (false);
+}
+
+bool	Channel::isFull(void)
+{
+	if (_limit == (size_t)-1)
+		return (false);
+	if (_users.size() < _limit)
+		return (false);
+	return (true);
+}
+
 void	Channel::broadcast(User *user, std::string msg, bool priv)
 {
 	std::string	nick = user->getNickname();
 
+	if (priv && _mode.find('m') != std::string::npos)
+	{
+		try
+		{
+			_moderate.at(user->getFd());
+		}
+		catch (const std::out_of_range &e)
+		{
+			return;
+		}
+	}
 	for (users_iterator it = _users.begin(); it != _users.end(); ++it)
 	{
-		if (priv)
+		if (priv && it->second != user)
 			it->second->sendReply(RPL_PRIVMSG(nick, _name, msg));
-		else
+		else if (!priv)
 			it->second->sendReply(msg);
 	}
+}
+
+void	Channel::showOperators(void)
+{
+	std::cout << "Operators :" << std::endl;
+	for (users_iterator it = _operators.begin(); it != _operators.end(); ++it)
+		std::cout << it->second->getNickname() << std::endl;
 }

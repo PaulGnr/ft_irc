@@ -29,31 +29,44 @@ class Server;
 class Channel;
 class User;
 
-#define ERR_NOSUCHNICK(nick)				":server 401 :" + nick + " :No such nick/channel"
-#define ERR_NOSUCHSERVER(server)			":server 402 :" + server + " :No such server"
-#define ERR_NOSUCHCHANNEL(channel)			":server 403 :" + channel + " :No such channel"
-#define ERR_TOOMANYTARGETS(target)			":server 407 :" + target + " :Duplicate recipients. No message delivered"
-#define ERR_NOORIGIN()						":server 409 :No origin specified"
-#define ERR_NOTEXTTOSEND(nick)				":server 412 :" + nick + " :No text to send"
-#define ERR_UNKNOWNCOMMAND(nick, command)	":server 421 :" + nick + " " + command + " :Unknown command"
-#define ERR_NONICKNAMEGIVEN(nick)			":server 431 :" + nick + " :No nickname given"
-#define ERR_NICKNAMEINUSE(nick)				":server 433 :" + nick + " :Nickname is already in use"
-#define ERR_NICKCOLLISION(nick)				":server 436 :" + nick + " :Nickname collision KILL"
-#define ERR_NOTONCHANNEL(channel)			":server 442 :" + channel + " :You're not on that channel"
-#define ERR_NEEDMOREPARAMS(nick, command)	":server 461 :" + nick + " " + command + " :Not enough parameters"
-#define ERR_ALREADYREGISTERED(nick)			":server 462 :" + nick + " :You may not reregister"
-#define ERR_PASSWDMISMATCH(nick) 			":server 464 :" + nick + " :Password incorrect"
-#define ERR_UNKNOWNMODE(mode) 				":server 472 :" + mode + " :is unknown mode char to me"
-#define ERR_BADCHANMASK(channel) 			":server 476 :" + channel + " :is a bad channel mask"
-#define ERR_CHANOPRIVSNEEDED(channel) 		":server 482 :" + channel + " :You're not channel operator"
-#define ERR_UMODEUNKNOWNFLAG() 				":server 501 :Unknown MODE flag"
-#define ERR_USERSDONTMATCH() 				":server 502 :Cant change mode for otherusers"
+#define	RPL_WELCOME(nick, server, user, hostname)	":" + server + " 001 " + nick + " :Welcome to the " + server + " network, " + nick + "[" + user + "@" + hostname + "]"
+	;
+#define	RPL_YOURHOST(nick, server)					":" + server + " 002 " + nick + " :Your host is " + server + ", running version 1.2.3"
+#define	RPL_CREATED(nick, server, timestamp)		":" + server + " 003 " + nick + " :This server was created " + timestamp
+#define	RPL_MYINFO(nick, server)					":" + server + " 004 " + nick + " " + server + " irssi 1.2.3 (20210409 0011)"
 
-#define RPL_JOIN(nick, channel)			":" + nick + " JOIN :" + channel
-#define RPL_PART(nick, channel)			":" + nick + " PART :" + channel
-#define RPL_PONG(nick, server)			":" + nick + " PONG " + server
-#define RPL_PRIVMSG(nick, channel, msg)	":" + nick + " PRIVMSG " + channel + " :" + msg
-#define RPL_QUIT(nick, reason)			": " + nick + " QUIT :Quit: " + reason
+#define ERR_NOSUCHNICK(nick)				":IRC 401 :" + nick + " :No such nick/channel"
+#define ERR_NOSUCHSERVER(server)			":IRC 402 :" + server + " :No such server"
+#define ERR_NOSUCHCHANNEL(channel)			":IRC 403 :" + channel + " :No such channel"
+#define ERR_CANNOTSENDTOCHAN(channel)		":IRC 404 :" + channel + " :Cannot send to channel"
+#define ERR_TOOMANYTARGETS(target)			":IRC 407 :" + target + " :Duplicate recipients. No message delivered"
+#define ERR_NOORIGIN()						":IRC 409 :No origin specified"
+#define ERR_NOTEXTTOSEND(nick)				":IRC 412 :" + nick + " :No text to send"
+#define ERR_UNKNOWNCOMMAND(nick, command)	":IRC 421 :" + nick + " " + command + " :Unknown command"
+#define ERR_NONICKNAMEGIVEN(nick)			":IRC 431 :" + nick + " :No nickname given"
+#define ERR_NICKNAMEINUSE(nick)				":IRC 433 :" + nick + " :Nickname is already in use"
+#define ERR_NICKCOLLISION(nick)				":IRC 436 :" + nick + " :Nickname collision KILL"
+#define ERR_NOTONCHANNEL(channel)			":IRC 442 :" + channel + " :You're not on that channel"
+#define ERR_NEEDMOREPARAMS(nick, command)	":IRC 461 :" + nick + " " + command + " :Not enough parameters"
+#define ERR_ALREADYREGISTERED(nick)			":IRC 462 :" + nick + " :You may not reregister"
+#define ERR_PASSWDMISMATCH(nick) 			":IRC 464 :" + nick + " :Password incorrect"
+#define ERR_CHANNELISFULL(channel) 			":IRC 471 :" + channel + " :Cannot join channel (+l)"
+#define ERR_UNKNOWNMODE(mode) 				":IRC 472 :" + mode + " :is unknown mode char to me"
+#define ERR_INVITEONLYCHAN(channel) 		":IRC 473 :" + channel + " :Cannot join channel (+i)"
+#define ERR_BADCHANMASK(channel) 			":IRC 476 :" + channel + " :is a bad channel mask"
+#define ERR_CHANOPRIVSNEEDED(channel) 		":IRC 482 :" + channel + " :You're not channel operator"
+#define ERR_UMODEUNKNOWNFLAG() 				":IRC 501 :Unknown MODE flag"
+#define ERR_USERSDONTMATCH() 				":IRC 502 :Cant change mode for other users"
+
+//#define	RPL_CHANNELMODEIS(nick, channel, mode)	":" + nick + "@IRC MODE " + channel + " :" + mode
+#define	RPL_CHANNELMODEIS(channel, mode, params)	":IRC 324 :" + channel + " " + mode + " " + params
+#define	RPL_CHANNELMODE(nick, channel, mode)	":" + nick + "@IRC MODE " + channel + " :" + mode
+
+#define RPL_JOIN(nick, channel)			":" + nick + "@IRC JOIN :" + channel
+#define RPL_PART(nick, channel)			":" + nick + "@IRC PART :" + channel
+#define RPL_PONG(nick, server)			":" + nick + "@IRC PONG " + server
+#define RPL_PRIVMSG(nick, channel, msg)	":" + nick + "@IRC PRIVMSG " + channel + " :" + msg
+#define RPL_QUIT(nick, reason)			": " + nick + "@IRC QUIT :Quit: " + reason
 
 #define BACKLOG 10
 #define DEBUG 0

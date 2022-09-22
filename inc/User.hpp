@@ -32,6 +32,8 @@ class User
 		void	clearMsg(void);
 		void	welcome(void);
 
+		bool	wrongMode(char c);
+
 		std::string	mode;
 
 	private:

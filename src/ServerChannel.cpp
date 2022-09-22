@@ -15,8 +15,8 @@ Channel		*Server::_createChan(User *user, std::string name, std::string key)
 	Channel	*chan = new Channel(name, key);
 
 	std::cout << "New channel " << name << " created."  << std::endl;
-	chan->setAdmin(user);
 	chan->addUser(user);
+	chan->addOperator(user);
 	this->_addChannel(chan);
 	return (chan);
 }

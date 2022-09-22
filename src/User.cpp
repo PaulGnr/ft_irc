@@ -3,7 +3,7 @@
 User::User(): mode(""), _nickname(""), _hostname(""), _user(""), _server(""), _welcomed(false), _passwdOK(false), _addr(NULL)
 {}
 
-User::User(int fd, struct sockaddr_storage *addr): mode(""), _nickname(""), _hostname(""), _user(""), _server("localhost"), _message(""), _welcomed(false), _passwdOK(false), _fd(fd), _addr(addr)
+User::User(int fd, struct sockaddr_storage *addr): mode(""), _nickname(""), _hostname("localhost"), _user(""), _server("IRC"), _message(""), _welcomed(false), _passwdOK(false), _fd(fd), _addr(addr)
 {}
 
 User::~User()
@@ -53,16 +53,18 @@ void	User::clearMsg(void) {
 
 void	User::welcome(void)
 {
-	std::string	rpl_1 = ":server 001 " + _nickname + " :Welcome to the " + _server + " network, " + _nickname + "[" + _user + "@" + _server + "]\r\n";
-	std::string	rpl_2 = ":server 002 " + _nickname + " :Your host is " + _server + ", running version 1.2.3\r\n";
-	std::string	rpl_3 = ":server 003 " + _nickname + " :This server was created " + timestamp() + "\r\n";
-	std::string	rpl_4 = ":server 004 " + _nickname + " localhost irssi 1.2.3 (20210409 0011)\r\n";
-
-	send(_fd, rpl_1.c_str(), rpl_1.length(), 0);
-	send(_fd, rpl_2.c_str(), rpl_2.length(), 0);
-	send(_fd, rpl_3.c_str(), rpl_3.length(), 0);
-	send(_fd, rpl_4.c_str(), rpl_4.length(), 0);
+	sendReply(RPL_WELCOME(_nickname, _server, _user, _hostname));
+	sendReply(RPL_YOURHOST(_nickname, _server));
+	sendReply(RPL_CREATED(_nickname, _server, timestamp()));
+	sendReply(RPL_MYINFO(_nickname, _server));
 	_welcomed = true;
+}
+
+bool	User::wrongMode(char c)
+{
+	if (c == 'i' || c == 'w' || c == 's' || c == 'o')
+		return (false);
+	return (true);
 }
 
 std::ostream&	operator<<(std::ostream &o, const User &user)
