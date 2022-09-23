@@ -46,7 +46,7 @@ void	Channel::broadcast(User *user, std::string msg, bool priv)
 
 	for (users_iterator it = _users.begin(); it != _users.end(); ++it)
 	{
-		if (priv)
+		if (priv && user->getFd() != it->second->getFd())
 			it->second->sendReply(RPL_PRIVMSG(nick, _name, msg));
 		else
 			it->second->sendReply(msg);
