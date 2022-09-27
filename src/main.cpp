@@ -7,7 +7,8 @@ bool	portIsOK(std::string port)
 
 	try
 	{
-		i_port = stoi(port, &i);
+		std::istringstream(port) >> i_port;
+		i = int(log10(i_port) + 1);
 		if (i != port.size())
 			return (false);
 		if (i <= 0 || i > 65535)

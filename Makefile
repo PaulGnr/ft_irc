@@ -15,7 +15,7 @@ OBJ		= $(SRC:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
 
 DEP		= $(OBJ:%.o=%.d)
 
-CFLAGS	= #-Wall -Wextra -Werror -std=c++98
+CFLAGS	= -Wall -Wextra -Werror -std=c++98
 
 HOST = $(shell whoami)
 ifeq ($(HOST),louisraffin)
