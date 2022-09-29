@@ -532,7 +532,12 @@ void	Server::_partCmd(User *user, std::string buf)
 	{
 		channel = _chans.at(channel_name);
 		if (channel->userIsIn(user))
+		{
 			channel->broadcast(user, RPL_PART(user->getNickname(), channel_name), false);
+			channel->delUser(user);
+			if (channel->getUserCount() == 0)
+				this->_delChannel(channel);
+		}
 		else
 		{
 			user->sendReply(ERR_NOTONCHANNEL(channel_name));

@@ -1,6 +1,7 @@
 #include "Channel.hpp"
 
 std::string	Channel::getName(void) {return (_name);}
+int			Channel::getUserCount(void) {return (_users.size());}
 std::string	Channel::getKey(void) {return (_key);}
 User		*Channel::getAdmin(void) {return (_admin);}
 std::string	Channel::getMode(void) {return (_mode);}
@@ -25,6 +26,11 @@ void	Channel::setMode(std::string mode)
 void	Channel::addUser(User *user)
 {
 	this->_users.insert(std::pair<std::string, User *>(user->getNickname(), user));
+}
+
+void	Channel::delUser(User *user)
+{
+	this->_users.erase(user->getNickname());
 }
 
 bool	Channel::userIsIn(User *user)

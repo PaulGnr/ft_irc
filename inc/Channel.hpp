@@ -17,6 +17,7 @@ class Channel
 		std::string	getKey(void);
 		User		*getAdmin(void);
 		std::string	getMode(void);
+		int			getUserCount(void);
 
 		void		setAdmin(User *user);
 		void		setMode(std::string mode);
@@ -25,10 +26,11 @@ class Channel
 		void		delUser(User *user);
 		bool		userIsIn(User *user);
 
-		void		broadcast(User *user, std::string msg, bool priv); 
+		void		broadcast(User *user, std::string msg, bool priv);
 
 	private:
 		std::map<std::string, User *>	_users;
+		int						_count;
 		User					*_admin;
 		std::string				_name;
 		std::string				_topic;

@@ -25,6 +25,11 @@ void	Server::_addChannel(Channel *chan) {
 	this->_chans.insert(std::pair<std::string, Channel *>(chan->getName(), chan));
 }
 
+void	Server::_delChannel(Channel *chan) {
+	std::cout << "Channel " << chan->getName() << " deleted." << std::endl;
+	this->_chans.erase(chan->getName());
+}
+
 std::vector<std::string>	Server::_getChannels(std::string buf)
 {
 	std::vector<std::string>	channels;

@@ -86,6 +86,7 @@ class Server
 		int		_chanExists(std::string name);
 		Channel	*_createChan(User *user, std::string name, std::string key);
 		void	_addChannel(Channel *chan);
+		void	_delChannel(Channel *chan);
 		std::vector<std::string>	_getChannels(std::string buf);
 		std::vector<std::string>	_getKeys(std::string buf, size_t size);
 };
