@@ -7,7 +7,8 @@ bool	portIsOK(std::string port)
 
 	try
 	{
-		i_port = stoi(port, &i);
+		std::istringstream(port) >> i_port;
+		i = int(log10(i_port) + 1);
 		if (i != port.size())
 			return (false);
 		if (i <= 0 || i > 65535)
@@ -27,7 +28,7 @@ int	main(int argc, char **argv)
 		std::cerr << "Error : Wrong number of arguments." << std::endl;
 		return (1);
 	}
-	
+
 	if (!portIsOK(argv[1]))
 	{
 		std::cerr << "Error : Bad port number." << std::endl;
@@ -36,7 +37,6 @@ int	main(int argc, char **argv)
 	try
 	{
 		Server	server(argv[1], argv[2]);
-		server.poll_handler();
 	}
 	catch (const std::runtime_error &e)
 	{

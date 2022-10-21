@@ -26,7 +26,7 @@ else
 	CC = c++
 endif
 
-RM	= rm -rf
+RM		= rm -rf
 
 NAME	= ircserv
 

@@ -7,6 +7,7 @@ Channel::~Channel(void)
 {}
 
 std::string	Channel::getName(void) {return (_name);}
+int			Channel::getUserCount(void) {return (_users.size());}
 std::string	Channel::getKey(void) {return (_key);}
 std::string	Channel::getMode(void) {return (_mode);}
 
@@ -32,6 +33,16 @@ void	Channel::addOperator(User *user)
 void	Channel::delOperator(User *user)
 {
 	_operators.erase(user->getFd());
+}
+
+void	Channel::addBan(User *user)
+{
+	_ban.insert(std::make_pair(user->getFd(), user));
+}
+
+void	Channel::delBan(User *user)
+{
+	_ban.erase(user->getFd());
 }
 
 bool	Channel::userIsIn(User *user)
@@ -114,11 +125,32 @@ bool	Channel::isFull(void)
 	return (true);
 }
 
-void	Channel::broadcast(User *user, std::string msg, bool priv)
+void	Channel::broadcast(User *user, std::string msg)
+{
+	(void)user;
+	for (users_iterator it = _users.begin(); it != _users.end(); ++it)
+	{
+		it->second->sendReply(msg);
+	}
+}
+
+void	Channel::privmsg(User *user, std::string msg)
 {
 	std::string	nick = user->getNickname();
 
-	if (priv && _mode.find('m') != std::string::npos)
+	if (_mode.find('n') != std::string::npos)
+	{
+		try
+		{
+			user->sendReply(ERR_CANNOTSENDTOCHAN(_name));
+			_users.at(user->getFd());
+		}
+		catch (const std::out_of_range &e)
+		{
+			return;
+		}
+	}
+	if (_mode.find('m') != std::string::npos)
 	{
 		try
 		{
@@ -131,10 +163,8 @@ void	Channel::broadcast(User *user, std::string msg, bool priv)
 	}
 	for (users_iterator it = _users.begin(); it != _users.end(); ++it)
 	{
-		if (priv && it->second != user)
+		if (it->second != user)
 			it->second->sendReply(RPL_PRIVMSG(nick, _name, msg));
-		else if (!priv)
-			it->second->sendReply(msg);
 	}
 }
 

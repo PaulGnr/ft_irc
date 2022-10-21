@@ -18,6 +18,7 @@ class Server
 	 */
 
 	public:
+		Server();
 		Server(std::string port, std::string password);
 		~Server();
 
@@ -26,8 +27,6 @@ class Server
 		std::string					getPort(void) const;
 		std::string					getPassword(void) const;
 		int							getListener(void) const;
-
-		void	poll_handler(void);
 
 	private:
 		int									_listener;
@@ -47,6 +46,7 @@ class Server
 
 		// Server related functions
 
+		void	_poll_handler(void);
 		void	_createListener(void);
 		void	_createCmd(void);
 		void	_clientConnect(void);
@@ -87,6 +87,9 @@ class Server
 		void	_chanModeN(char sign, Channel *channel, User *user, std::string buf);
 		void	_chanModeM(char sign, Channel *channel, User *user, std::string buf);
 		void	_chanModeL(char sign, Channel *channel, User *user, std::string buf);
+		void	_chanModeB(char sign, Channel *channel, User *user, std::string buf);
+		void	_chanModeV(char sign, Channel *channel, User *user, std::string buf);
+		void	_chanModeK(char sign, Channel *channel, User *user, std::string buf);
 
 
 		void	_userModeCmd(User *user, std::string buf);
@@ -101,6 +104,7 @@ class Server
 		int							_chanExists(std::string name);
 		Channel*					_createChan(User *user, std::string name, std::string key);
 		void						_addChannel(Channel *chan);
+		void						_delChannel(Channel *chan);
 		std::vector<std::string>	_getChannels(std::string buf);
 		std::vector<std::string>	_getKeys(std::string buf, size_t size);
 };

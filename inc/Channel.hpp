@@ -16,6 +16,7 @@ class Channel
 		std::string	getName(void);
 		std::string	getKey(void);
 		std::string	getMode(void);
+		int			getUserCount(void);
 
 		void	setKey(std::string key);
 		void	setLimit(size_t limit);
@@ -24,6 +25,8 @@ class Channel
 		void	delUser(User *user);
 		void	addOperator(User *user);
 		void	delOperator(User *user);
+		void	addBan(User *user);
+		void	delBan(User *user);
 		bool	userIsIn(User *user);
 		bool	userIsOperator(User *user);
 		bool	isEmpty(void);
@@ -37,11 +40,14 @@ class Channel
 		bool	isNoOutside(void);
 		bool	isFull(void);
 
-		void	broadcast(User *user, std::string msg, bool priv); 
+		void	broadcast(User *user, std::string msg); 
+		void	privmsg(User *user, std::string msg); 
 
 		void	showOperators(void); //Debug
 
 	private:
+		//int						_count;
+		//User					*_admin;
 		std::string				_name;
 		std::string				_topic;
 		std::string				_key;

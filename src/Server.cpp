@@ -1,10 +1,14 @@
 #include "Server.hpp"
 
+Server::Server() : _port(""), _password(""), _host("")
+{}
+
 Server::Server(std::string port, std::string password): _port(port), _password(password), _host("localhost")
 {
 	_createListener();
 	_createCmd();
 	_createModeOption();
+	_poll_handler();
 }
 
 Server::~Server()
@@ -16,7 +20,7 @@ std::string					Server::getPort(void) const {return (_port);}
 std::string					Server::getPassword(void) const {return (_password);}
 int							Server::getListener(void) const {return (_listener);}
 
-void	Server::poll_handler(void)
+void	Server::_poll_handler(void)
 {
 	pollfd server_fd = {_listener, POLLIN, 0};
 	_pfds.push_back(server_fd);
@@ -378,7 +382,7 @@ void	Server::_joinCmd(User *user, std::string buf)
 		{
 			channel = _createChan(user, *chan, keys[chan - channels.begin()]);
 		}
-		channel->broadcast(user, RPL_JOIN(user->getNickname(), *chan), false);
+		channel->broadcast(user, RPL_JOIN(user->getNickname(), *chan));
 		//Ajouter RPL_TOPIC et RPL_NAMREPLY
 	}
 }
@@ -399,13 +403,10 @@ void	Server::_partCmd(User *user, std::string buf)
 		channel = _chans.at(channel_name);
 		if (channel->userIsIn(user))
 		{
-			channel->broadcast(user, RPL_PART(user->getNickname(), channel_name), false);
+			channel->broadcast(user, RPL_PART(user->getNickname(), channel_name));
 			channel->delUser(user);
-			if (channel->isEmpty())
-			{
-				_chans.erase(channel_name);
-				delete channel;
-			}
+			if (channel->getUserCount() == 0)
+				this->_delChannel(channel);
 		}
 		else
 			user->sendReply(ERR_NOTONCHANNEL(channel_name));
@@ -436,7 +437,7 @@ void	Server::_msgToChannel(User *user, std::string dest, std::string msg)
 
 		if (!channel->userIsIn(user) && channel->isNoOutside())
 			return (user->sendReply(ERR_CANNOTSENDTOCHAN(dest)));
-		channel->broadcast(user, msg, true);
+		channel->privmsg(user, msg);
 	}
 	catch (const std::out_of_range &e)
 	{
@@ -453,7 +454,7 @@ void	Server::_privmsgCmd(User *user, std::string buf)
 	std::string	msg = buf.substr(buf.find(':') + 1);
 	std::string dest = buf.substr(0, buf.find(':'));
 	size_t		start = dest.find_first_not_of(" ");
-	
+
 	dest = dest.substr(start, dest.find_last_not_of(" ") - start + 1);
 	if (dest[0] == '#' || dest[0] == '&')
 		_msgToChannel(user, dest, msg);

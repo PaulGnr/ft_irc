@@ -7,6 +7,7 @@
 #include <string>
 #include <sstream>
 #include <ctime>
+#include <cmath>
 #include <iostream>
 #include <iomanip>
 #include <functional>

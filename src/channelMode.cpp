@@ -10,6 +10,9 @@ void	Server::_createModeOption(void)
 	_chanModeOption.insert(std::make_pair('n', &Server::_chanModeN));
 	_chanModeOption.insert(std::make_pair('m', &Server::_chanModeM));
 	_chanModeOption.insert(std::make_pair('l', &Server::_chanModeL));
+	_chanModeOption.insert(std::make_pair('b', &Server::_chanModeB));
+	_chanModeOption.insert(std::make_pair('v', &Server::_chanModeV));
+	_chanModeOption.insert(std::make_pair('k', &Server::_chanModeK));
 }
 
 void	Server::_channelModeCmd(User *user, std::string buf)
@@ -69,12 +72,12 @@ void	Server::_chanModeO(char sign, Channel *channel, User *user, std::string buf
 	if (sign == '+' && !channel->userIsOperator(target))
 	{
 		channel->addOperator(target);
-		channel->broadcast(user, RPL_CHANNELMODE(user->getNickname(), channel->getName(), buf), 0);
+		channel->broadcast(user, RPL_CHANNELMODE(user->getNickname(), channel->getName(), buf));
 	}
 	else if (sign == '-' && channel->userIsOperator(target))
 	{
 		channel->delOperator(target);
-		channel->broadcast(user, RPL_CHANNELMODE(user->getNickname(), channel->getName(), buf), 0);
+		channel->broadcast(user, RPL_CHANNELMODE(user->getNickname(), channel->getName(), buf));
 	}
 }
 
@@ -148,4 +151,34 @@ void	Server::_chanModeL(char sign, Channel *channel, User *user, std::string buf
 	limit = stol(buf.substr(buf.find(' ') + 1));
 	if (sign == '+')
 		channel->setLimit(limit);
+}
+
+void	Server::_chanModeB(char sign, Channel *channel, User *user, std::string buf)
+{
+	(void)user;
+	std::string	nick = buf.substr(buf.find_last_of(' ') + 1);
+	User*		target = _getUserByNick(nick);
+
+	if (target == _users.end()->second)
+		return (user->sendReply(ERR_NOSUCHNICK(nick)));
+	if (sign == '-')
+		channel->delBan(target);
+	if (sign == '-')
+		channel->addBan(target);
+}
+
+void	Server::_chanModeV(char sign, Channel *channel, User *user, std::string buf)
+{
+	(void)sign;
+	(void)channel;
+	(void)user;
+	(void)buf;
+}
+
+void	Server::_chanModeK(char sign, Channel *channel, User *user, std::string buf)
+{
+	(void)sign;
+	(void)channel;
+	(void)user;
+	(void)buf;
 }
