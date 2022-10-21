@@ -28,6 +28,11 @@ class User
 		bool		getPasswdOK(void) const;
 		int			getFd(void) const;
 
+		void		addChan(Channel *chan);
+		void		delChan(Channel *chan);
+		bool		isInChan(void);
+		Channel*	getFirstChan(void);
+
 		void	sendReply(std::string reply);
 		void	clearMsg(void);
 		void	welcome(void);
@@ -38,15 +43,16 @@ class User
 
 	private:
 
-		std::string				_nickname;
-		std::string				_hostname;
-		std::string				_user;
-		std::string				_server;
-		std::string				_message;
-		bool					_welcomed;
-		bool					_passwdOK; // Changer nom de variable si on trouve mieux
-		int						_fd;
-		struct sockaddr_storage	*_addr;
+		std::string							_nickname;
+		std::string							_hostname;
+		std::string							_user;
+		std::string							_server;
+		std::string							_message;
+		bool								_welcomed;
+		bool								_passwdOK; // Changer nom de variable si on trouve mieux
+		int									_fd;
+		std::map<std::string, Channel *>	_chans;
+		struct sockaddr_storage				*_addr;
 };
 
 std::ostream&	operator<<(std::ostream &o, const User &user);

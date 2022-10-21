@@ -54,6 +54,8 @@ class User;
 #define ERR_CHANNELISFULL(channel) 			":IRC 471 :" + channel + " :Cannot join channel (+l)"
 #define ERR_UNKNOWNMODE(mode) 				":IRC 472 :" + mode + " :is unknown mode char to me"
 #define ERR_INVITEONLYCHAN(channel) 		":IRC 473 :" + channel + " :Cannot join channel (+i)"
+#define ERR_BANNEDFROMCHAN(channel) 		":IRC 474 :" + channel + " :Cannot join channel (+b)"
+#define ERR_BADCHANNELKEY(channel) 			":IRC 475 :" + channel + " :Cannot join channel (+k)"
 #define ERR_BADCHANMASK(channel) 			":IRC 476 :" + channel + " :is a bad channel mask"
 #define ERR_CHANOPRIVSNEEDED(channel) 		":IRC 482 :" + channel + " :You're not channel operator"
 #define ERR_UMODEUNKNOWNFLAG() 				":IRC 501 :Unknown MODE flag"

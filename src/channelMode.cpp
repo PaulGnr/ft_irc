@@ -143,19 +143,21 @@ void	Server::_chanModeM(char sign, Channel *channel, User *user, std::string buf
 
 void	Server::_chanModeL(char sign, Channel *channel, User *user, std::string buf)
 {
+	std::stringstream	ss;
+
 	if (sign == '-')
 		channel->setLimit(-1);
 	if (buf.find(' ') == std::string::npos)
 		return (user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "MODE")));
 	size_t	limit;
-	limit = stol(buf.substr(buf.find(' ') + 1));
+	ss << buf.substr(buf.find(' ') + 1);
+	ss >> limit;
 	if (sign == '+')
 		channel->setLimit(limit);
 }
 
 void	Server::_chanModeB(char sign, Channel *channel, User *user, std::string buf)
 {
-	(void)user;
 	std::string	nick = buf.substr(buf.find_last_of(' ') + 1);
 	User*		target = _getUserByNick(nick);
 
@@ -163,22 +165,40 @@ void	Server::_chanModeB(char sign, Channel *channel, User *user, std::string buf
 		return (user->sendReply(ERR_NOSUCHNICK(nick)));
 	if (sign == '-')
 		channel->delBan(target);
-	if (sign == '-')
+	if (sign == '+')
 		channel->addBan(target);
 }
 
 void	Server::_chanModeV(char sign, Channel *channel, User *user, std::string buf)
 {
-	(void)sign;
-	(void)channel;
-	(void)user;
-	(void)buf;
+	std::string	nick;
+
+	if (buf.find(' ') == std::string::npos)
+		return (user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "MODE +k")));
+	nick = nick.substr(nick.find(' ') + 1);
+
+	User*		target = _getUserByNick(nick);
+
+	if (target == _users.end()->second)
+		return (user->sendReply(ERR_NOSUCHNICK(nick)));
+	if (sign == '-')
+		channel->delModerate(target);
+	if (sign == '+')
+		channel->addModerate(target);
 }
 
 void	Server::_chanModeK(char sign, Channel *channel, User *user, std::string buf)
 {
-	(void)sign;
-	(void)channel;
-	(void)user;
-	(void)buf;
+	std::string	key;
+
+	if (buf.find(' ') == std::string::npos)
+		return (user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "MODE +k")));
+	key = buf.substr(buf.find(' ') + 1);
+	if (sign == '+')
+	{
+		channel->addMode('k');
+		channel->setKey(key);
+	}
+	if (sign == '-')
+		channel->delMode('k');
 }

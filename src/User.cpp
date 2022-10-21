@@ -27,6 +27,29 @@ bool			User::hasBeenWelcomed(void) const {return (_welcomed);}
 bool			User::getPasswdOK(void) const {return (_passwdOK);}
 int				User::getFd(void) const {return (_fd);}
 
+void	User::addChan(Channel *chan)
+{
+	_chans.insert(std::make_pair(chan->getName(), chan));
+}
+
+void	User::delChan(Channel *chan)
+{
+	_chans.erase(chan->getName());
+	chan->delUser(this);
+}
+
+bool	User::isInChan(void)
+{
+	if (_chans.size() != 0)
+		return (true);
+	return (false);
+}
+
+Channel*	User::getFirstChan(void)
+{
+	return (_chans.begin()->second);
+}
+
 void	User::sendReply(std::string reply)
 {
 	reply.append("\r\n");

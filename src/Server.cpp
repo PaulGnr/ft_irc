@@ -162,6 +162,7 @@ void	Server::_addUser(int fd, struct sockaddr_storage &addr)
 void	Server::_delUser(pfds_iterator &it)
 {
 	User	*user = _users.at(it->fd);
+
 	if (it->fd > 0)
 		_users.erase(it->fd);
 	close(it->fd);
@@ -323,6 +324,8 @@ void	Server::_userCmd(User *user, std::string buf)
 
 void	Server::_quitCmd(User *user, std::string buf)
 {
+	while (user->isInChan())
+		_partCmd(user, user->getFirstChan()->getName() + " :" + &(user->getFirstChan()->getName()[1]));
 	user->sendReply(RPL_QUIT(user->getNickname(), (buf.empty() ? "Leaving" : buf)));
 	close(user->getFd());
 	_users.erase(user->getFd());
@@ -375,8 +378,20 @@ void	Server::_joinCmd(User *user, std::string buf)
 				user->sendReply(ERR_CHANNELISFULL(channel->getName()));
 				break;
 			}
-			else
-				channel->addUser(user);
+			if (channel->userIsBan(user))
+			{
+				user->sendReply(ERR_BANNEDFROMCHAN(channel->getName()));
+				break;
+			}
+			if (channel->isKeyProtect())
+			{
+				if (!channel->checkKey(keys[chan - channels.begin()]))
+				{
+					user->sendReply(ERR_BADCHANNELKEY(channel->getName()));
+					break;
+				}
+			}
+			channel->addUser(user);
 		}
 		catch (const std::out_of_range &e)
 		{
@@ -404,7 +419,7 @@ void	Server::_partCmd(User *user, std::string buf)
 		if (channel->userIsIn(user))
 		{
 			channel->broadcast(user, RPL_PART(user->getNickname(), channel_name));
-			channel->delUser(user);
+			user->delChan(channel);
 			if (channel->getUserCount() == 0)
 				this->_delChannel(channel);
 		}
