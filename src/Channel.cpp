@@ -10,11 +10,21 @@ Channel::~Channel(void)
 {}
 
 std::string	Channel::getName(void) {return (_name);}
+std::string	Channel::getTopic(void) {return (_topic);}
 int			Channel::getUserCount(void) {return (_users.size());}
 std::string	Channel::getMode(void) {return (_mode);}
 
 void	Channel::setKey(std::string key) {_key = key;}
 void	Channel::setLimit(size_t limit) {_limit = limit;}
+void	Channel::setTopic(std::string topic, std::string nick)
+{
+	std::stringstream	ss;
+
+	_topic = topic;
+	_topicSetter = nick;
+	ss << time(NULL);
+	ss >> _topicTime;
+}
 
 void	Channel::addUser(User *user)
 {
@@ -136,6 +146,13 @@ bool	Channel::wrongMode(char c)
 	return (true);
 }
 
+bool	Channel::hasMode(char c)
+{
+	if (_mode.find(c) != std::string::npos)
+		return (true);
+	return (false);
+}
+
 bool	Channel::isInviteOnly(void)
 {
 	if (_mode.find('i') != std::string::npos)
@@ -171,6 +188,35 @@ bool	Channel::checkKey(std::string key)
 	if (_key == key)
 		return (true);
 	return (false);
+}
+
+void	Channel::rpl_topicwhotime(User *user)
+{
+	user->sendReply(RPL_TOPICWHOTIME(user->getNickname(), _name, _topicSetter, _topicTime));
+}
+
+void	Channel::rpl_namreply(User *user)
+{
+	std::string	nicks;
+	std::string	symbol;
+
+	for (std::map<int, User *>::iterator usr = _users.begin(); usr != _users.end(); ++usr)
+	{
+		if (_operators.find(usr->first) != _operators.end())
+			nicks += "@";
+		if (_moderate.find(usr->first) != _moderate.end())
+			nicks += "+";
+		nicks += usr->second->getNickname() + " ";
+	}
+	nicks.erase(nicks.size() - 1, 1);
+	if (_mode.find('s') != std::string::npos)
+		symbol = "@";
+	else if (_mode.find('p') != std::string::npos)
+		symbol = "*";
+	else
+		symbol = "=";
+	user->sendReply(RPL_NAMREPLY(user->getNickname(), symbol, _name, nicks));
+	user->sendReply(RPL_ENDOFNAMES(user->getNickname(), _name));
 }
 
 void	Channel::broadcast(User *user, std::string msg)

@@ -86,9 +86,11 @@ void	Server::_createCmd(void)
 	_cmd.insert(std::make_pair("QUIT", &Server::_quitCmd));
 	_cmd.insert(std::make_pair("PING", &Server::_pingCmd));
 	_cmd.insert(std::make_pair("MODE", &Server::_modeCmd));
+	_cmd.insert(std::make_pair("TOPIC", &Server::_topicCmd));
 	_cmd.insert(std::make_pair("JOIN", &Server::_joinCmd));
 	_cmd.insert(std::make_pair("PART", &Server::_partCmd));
 	_cmd.insert(std::make_pair("PRIVMSG", &Server::_privmsgCmd));
+	_cmd.insert(std::make_pair("NOTICE", &Server::_noticeCmd));
 }
 
 void	Server::_clientConnect(void)
@@ -351,6 +353,35 @@ void	Server::_modeCmd(User *user, std::string buf)
 		_userModeCmd(user, buf);
 }
 
+void	Server::_topicCmd(User *user, std::string buf)
+{
+	std::string	chan_name;
+	if (buf.find(' ') != std::string::npos)
+		chan_name = buf.substr(0, buf.find(' '));
+	else
+		chan_name = buf;
+	try
+	{
+		Channel*	chan = _chans.at(chan_name);
+		if (buf.find(':') == std::string::npos)
+		{
+			if (chan->getTopic() == "")
+				return (user->sendReply(RPL_NOTOPIC(user->getNickname(), chan_name)));
+			return (user->sendReply(RPL_TOPIC(user->getNickname(), chan_name, chan->getTopic())));
+		}
+		std::string	topic = buf.substr(buf.find(':') + 1);
+
+		if (chan->hasMode('t') && !chan->userIsOperator(user))
+			return (user->sendReply(ERR_CHANOPRIVSNEEDED(chan_name)));
+		chan->setTopic(topic, user->getNickname());
+		return (chan->broadcast(user, RPL_TOPIC(user->getNickname(), chan_name, chan->getTopic())));
+	}
+	catch (const std::out_of_range &e)
+	{
+		user->sendReply(ERR_NOTONCHANNEL(chan_name));
+	}
+}
+
 void	Server::_joinCmd(User *user, std::string buf)
 {
 	if (!user->hasBeenWelcomed())
@@ -392,13 +423,20 @@ void	Server::_joinCmd(User *user, std::string buf)
 				}
 			}
 			channel->addUser(user);
+			channel->broadcast(user, RPL_JOIN(user->getNickname(), *chan));
+			if (channel->getTopic() != "")
+			{
+				user->sendReply(RPL_TOPIC(user->getNickname(), channel->getName(), channel->getTopic()));
+				channel->rpl_topicwhotime(user);
+			}
+			channel->rpl_namreply(user);
 		}
 		catch (const std::out_of_range &e)
 		{
 			channel = _createChan(user, *chan, keys[chan - channels.begin()]);
+			channel->broadcast(user, RPL_JOIN(user->getNickname(), *chan));
+			channel->rpl_namreply(user);
 		}
-		channel->broadcast(user, RPL_JOIN(user->getNickname(), *chan));
-		//Ajouter RPL_TOPIC et RPL_NAMREPLY
 	}
 }
 
@@ -475,4 +513,37 @@ void	Server::_privmsgCmd(User *user, std::string buf)
 		_msgToChannel(user, dest, msg);
 	else
 		_msgToUser(user, dest, msg);
+}
+
+void	Server::_noticeCmd(User *user, std::string buf)
+{
+	if (!user->hasBeenWelcomed())
+		return;
+	if (buf.find(':') == std::string::npos)
+		return;
+	std::string	msg = buf.substr(buf.find(':') + 1);
+	std::string dest = buf.substr(0, buf.find(':'));
+	size_t		start = dest.find_first_not_of(" ");
+
+	dest = dest.substr(start, dest.find_last_not_of(" ") - start + 1);
+	if (dest[0] == '#' || dest[0] == '&')
+	{
+		try
+		{
+			Channel	*channel = _chans.at(dest);
+
+			if (!channel->userIsIn(user) && channel->isNoOutside())
+				return;
+			channel->privmsg(user, msg);
+		}
+		catch (const std::out_of_range &e) {}
+	}
+	else
+	{
+		for (users_iterator it = _users.begin(); it != _users.end(); ++it)
+		{
+			if (it->second->getNickname() == dest)
+				return (it->second->sendReply(RPL_PRIVMSG(user->getNickname(), dest, msg)));
+		}
+	}
 }

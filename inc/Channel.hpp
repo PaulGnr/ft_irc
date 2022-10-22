@@ -14,11 +14,13 @@ class Channel
 		~Channel(void);
 
 		std::string	getName(void);
+		std::string	getTopic(void);
 		std::string	getMode(void);
 		int			getUserCount(void);
 
 		void	setKey(std::string key);
 		void	setLimit(size_t limit);
+		void	setTopic(std::string topic, std::string nick);
 
 		void	addUser(User *user);
 		void	delUser(User *user);
@@ -37,6 +39,7 @@ class Channel
 		void	addMode(char c);
 		void	delMode(char c);
 		bool	wrongMode(char c);
+		bool	hasMode(char c);
 
 		bool	isInviteOnly(void);
 		bool	isNoOutside(void);
@@ -45,6 +48,9 @@ class Channel
 
 		bool	checkKey(std::string key);
 
+		void	rpl_topicwhotime(User *user);
+		void	rpl_namreply(User *user);
+
 		void	broadcast(User *user, std::string msg); 
 		void	privmsg(User *user, std::string msg); 
 
@@ -52,9 +58,11 @@ class Channel
 
 	private:
 		std::string				_name;
-		std::string				_topic;
 		std::string				_key;
 		std::string				_mode;
+		std::string				_topic;
+		std::string				_topicSetter;
+		std::string				_topicTime;
 		std::map<int, User *>	_users;
 		std::map<int, User *>	_operators;
 		std::map<int, User *>	_ban;

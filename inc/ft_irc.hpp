@@ -61,15 +61,21 @@ class User;
 #define ERR_UMODEUNKNOWNFLAG() 				":IRC 501 :Unknown MODE flag"
 #define ERR_USERSDONTMATCH() 				":IRC 502 :Cant change mode for other users"
 
-//#define	RPL_CHANNELMODEIS(nick, channel, mode)	":" + nick + "@IRC MODE " + channel + " :" + mode
-#define	RPL_CHANNELMODEIS(channel, mode, params)	":IRC 324 :" + channel + " " + mode + " " + params
+#define	RPL_UMODEIS(nick, mode)	":IRC 221 " + nick + " " + mode
+#define	RPL_CHANNELMODEIS(nick, channel, mode, params)	":IRC 324 " + nick + " " + channel + " " + mode + " " + params
+#define	RPL_NOTOPIC(nick, channel)	":IRC 331 " + nick + " " + channel + " :No topic is set"
+#define	RPL_TOPIC(nick, channel, topic)	":IRC 332 " + nick + " " + channel + " :" + topic
+#define	RPL_TOPICWHOTIME(client, channel, nick, setat)	":IRC 333 " + client + " " + channel + " " + nick + " " + setat
+#define	RPL_NAMREPLY(client, symbol, channel, nicks)	":IRC 353 " + client + " " + symbol + " " + channel + " :" + nicks
+#define	RPL_ENDOFNAMES(client, channel)	":IRC 366 " + client + " " + channel + " :End of /NAMES list"
+
 #define	RPL_CHANNELMODE(nick, channel, mode)	":" + nick + "@IRC MODE " + channel + " :" + mode
 
 #define RPL_JOIN(nick, channel)			":" + nick + "@IRC JOIN :" + channel
 #define RPL_PART(nick, channel)			":" + nick + "@IRC PART :" + channel
 #define RPL_PONG(nick, server)			":" + nick + "@IRC PONG " + server
 #define RPL_PRIVMSG(nick, channel, msg)	":" + nick + "@IRC PRIVMSG " + channel + " :" + msg
-#define RPL_QUIT(nick, reason)			": " + nick + "@IRC QUIT :Quit: " + reason
+#define RPL_QUIT(nick, reason)			":" + nick + "@IRC QUIT :Quit: " + reason
 
 #define BACKLOG 10
 #define DEBUG 0

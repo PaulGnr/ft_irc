@@ -27,7 +27,7 @@ void	Server::_channelModeCmd(User *user, std::string buf)
 	{
 		Channel	*channel = _chans.at(chan_name);
 		if (chan_name == buf)
-			return (user->sendReply(RPL_CHANNELMODEIS(chan_name, channel->getMode(), "")));
+			return (user->sendReply(RPL_CHANNELMODEIS(user->getNickname(), chan_name, channel->getMode(), "")));
 		if (!channel->userIsOperator(user))
 			return (user->sendReply(ERR_CHANOPRIVSNEEDED(chan_name)));
 		buf = buf.substr(buf.find(' ') + 1);

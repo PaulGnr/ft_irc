@@ -23,9 +23,22 @@ std::string		User::getHostname(void) const {return (_hostname);}
 std::string		User::getUser(void) const {return (_user);}
 std::string		User::getServer(void) const {return (_server);}
 std::string		User::getMessage(void) const {return (_message);}
+std::string		User::getMode(void) const {return (_mode);}
 bool			User::hasBeenWelcomed(void) const {return (_welcomed);}
 bool			User::getPasswdOK(void) const {return (_passwdOK);}
 int				User::getFd(void) const {return (_fd);}
+
+void	User::addMode(char c)
+{
+	if (_mode.find(c) == std::string::npos)
+		_mode.append(1, c);
+}
+
+void	User::delMode(char c)
+{
+	if (_mode.find(c) != std::string::npos)
+		_mode.erase(_mode.find(c), 1);
+}
 
 void	User::addChan(Channel *chan)
 {

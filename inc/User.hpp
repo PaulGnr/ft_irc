@@ -24,15 +24,19 @@ class User
 		std::string	getUser(void) const;
 		std::string	getServer(void) const;
 		std::string	getMessage(void) const;
+		std::string	getMode(void) const;
 		bool		hasBeenWelcomed(void) const;
 		bool		getPasswdOK(void) const;
 		int			getFd(void) const;
 
+		void		addMode(char c);
+		void		delMode(char c);
 		void		addChan(Channel *chan);
 		void		delChan(Channel *chan);
 		bool		isInChan(void);
 		Channel*	getFirstChan(void);
 
+		void	sendQuit(std::string buf);
 		void	sendReply(std::string reply);
 		void	clearMsg(void);
 		void	welcome(void);
@@ -48,6 +52,7 @@ class User
 		std::string							_user;
 		std::string							_server;
 		std::string							_message;
+		std::string							_mode;
 		bool								_welcomed;
 		bool								_passwdOK; // Changer nom de variable si on trouve mieux
 		int									_fd;
