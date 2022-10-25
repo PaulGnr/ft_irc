@@ -17,7 +17,7 @@ Channel		*Server::_createChan(User *user, std::string name, std::string key)
 	std::cout << "New channel " << name << " created."  << std::endl;
 	chan->addUser(user);
 	chan->addOperator(user);
-	this->_addChannel(chan);
+	_addChannel(chan);
 	return (chan);
 }
 
@@ -27,7 +27,7 @@ void	Server::_addChannel(Channel *chan) {
 
 void	Server::_delChannel(Channel *chan) {
 	std::cout << "Channel " << chan->getName() << " deleted." << std::endl;
-	this->_chans.erase(chan->getName());
+	_chans.erase(chan->getName());
 	delete chan;
 }
 

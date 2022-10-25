@@ -7,7 +7,7 @@ class User;
 
 class Channel
 {
-	typedef	std::map<int, User *>::iterator users_iterator;
+	typedef	std::map<int, User*>::iterator users_iterator;
 
 	public:
 		Channel(const std::string &name, const std::string &key);
@@ -30,10 +30,13 @@ class Channel
 		void	delBan(User *user);
 		void	addModerate(User *user);
 		void	delModerate(User *user);
+		void	addInvitee(User *user);
+		void	delInvitee(User *user);
 		bool	userIsIn(User *user);
 		bool	userIsOperator(User *user);
 		bool	userIsBan(User *user);
 		bool	userIsModerate(User *user);
+		bool	userIsInvitee(User *user);
 		bool	isEmpty(void);
 
 		void	addMode(char c);
@@ -41,6 +44,8 @@ class Channel
 		bool	wrongMode(char c);
 		bool	hasMode(char c);
 
+		bool	isPrivate(void);
+		bool	isSecret(void);
 		bool	isInviteOnly(void);
 		bool	isNoOutside(void);
 		bool	isFull(void);
@@ -49,7 +54,8 @@ class Channel
 		bool	checkKey(std::string key);
 
 		void	rpl_topicwhotime(User *user);
-		void	rpl_namreply(User *user);
+		void	rpl_namreply(User *user, bool isIn, bool endList);
+		void	rpl_banlist(User *user);
 
 		void	broadcast(User *user, std::string msg); 
 		void	privmsg(User *user, std::string msg); 
@@ -67,6 +73,7 @@ class Channel
 		std::map<int, User *>	_operators;
 		std::map<int, User *>	_ban;
 		std::map<int, User *>	_moderate;
+		std::map<int, User *>	_invitee;
 		size_t					_limit;
 };
 

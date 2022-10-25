@@ -85,10 +85,14 @@ void	Server::_createCmd(void)
 	_cmd.insert(std::make_pair("USER", &Server::_userCmd));
 	_cmd.insert(std::make_pair("QUIT", &Server::_quitCmd));
 	_cmd.insert(std::make_pair("PING", &Server::_pingCmd));
-	_cmd.insert(std::make_pair("MODE", &Server::_modeCmd));
-	_cmd.insert(std::make_pair("TOPIC", &Server::_topicCmd));
 	_cmd.insert(std::make_pair("JOIN", &Server::_joinCmd));
 	_cmd.insert(std::make_pair("PART", &Server::_partCmd));
+	_cmd.insert(std::make_pair("MODE", &Server::_modeCmd));
+	_cmd.insert(std::make_pair("TOPIC", &Server::_topicCmd));
+	_cmd.insert(std::make_pair("NAMES", &Server::_namesCmd));
+	_cmd.insert(std::make_pair("LIST", &Server::_listCmd));
+	_cmd.insert(std::make_pair("INVITE", &Server::_inviteCmd));
+	_cmd.insert(std::make_pair("KICK", &Server::_kickCmd));
 	_cmd.insert(std::make_pair("PRIVMSG", &Server::_privmsgCmd));
 	_cmd.insert(std::make_pair("NOTICE", &Server::_noticeCmd));
 }
@@ -115,20 +119,27 @@ void	Server::_clientConnect(void)
 
 void	Server::_clientMessage(pfds_iterator &it)
 {
-	User	*user = _users.at(it->fd);
-	int		nbytes;
-
-	nbytes = _getMessage(user);
-	if (nbytes <= 0)
+	try
 	{
-		if (nbytes == 0) // disconnect
-			std::cout << "pollserver : socket " << it->fd << " hung up" << std::endl;
-		else // error
-			std::cerr << "Error : recv" << std::endl;
-		_delUser(it);
+		User	*user = _users.at(it->fd);
+		int		nbytes;
+
+		nbytes = _getMessage(user);
+		if (nbytes <= 0)
+		{
+			if (nbytes == 0) // disconnect
+				std::cout << "pollserver : socket " << it->fd << " hung up" << std::endl;
+			else // error
+				std::cerr << "Error : recv" << std::endl;
+			_delUser(it);
+		}
+		else
+			_handleCmd(user);
 	}
-	else
-		_handleCmd(user);
+	catch (const std::out_of_range &e)
+	{
+		std::cout << "Out of range from _clientMessage" << std::endl;
+	}
 }
 
 int	Server::_getMessage(User *user)
@@ -166,10 +177,14 @@ void	Server::_delUser(pfds_iterator &it)
 	User	*user = _users.at(it->fd);
 
 	if (it->fd > 0)
+	{
 		_users.erase(it->fd);
-	close(it->fd);
+		close(it->fd);
+	}
 	_pfds.erase(it);
 	it--;
+	while (user->isInChan())
+		_partCmd(user, user->getFirstChan()->getName() + " :" + &(user->getFirstChan()->getName()[1]));
 	delete user;
 }
 
@@ -251,7 +266,14 @@ void	Server::_handleCmd(User *user)
 				buf = msg.substr(cmd.length() + 1, msg.find("\r\n") - cmd.length() - 1);
 			try
 			{
-				std::cout << "try cmd: " << cmd << std::endl;
+				if (buf.find_first_not_of(' ') != std::string::npos)
+					buf = buf.substr(buf.find_first_not_of(' '));
+				else
+					buf.clear();
+				if (!buf.empty())
+					buf = buf.substr(0, buf.find_last_not_of(' ') + 1);
+				std::cout << "try cmd: <" << cmd << ">" << std::endl;
+				std::cout << "with buf: <" << buf << ">" << std::endl;
 				(this->*(_cmd.at(cmd)))(user, buf);
 				/* Pour au-dessus : Partie un peu tricky, en gros je sors le
 				 * pointeur sur fonction correspondant a la cmd dans la map,
@@ -301,10 +323,14 @@ void	Server::_nickCmd(User *user, std::string buf)
 {
 	if (buf.empty())
 		return (user->sendReply(ERR_NONICKNAMEGIVEN(user->getNickname())));
+	if (buf.find(' ') != std::string::npos)
+		buf = buf.substr(0, buf.find_first_of(' '));
 	for (users_iterator it = _users.begin(); it != _users.end(); ++it)
 	{
 		if (it->second->getNickname() == buf)
+		{
 			return (user->sendReply(ERR_NICKCOLLISION(user->getNickname())));
+		}
 	}
 	user->setNickname(buf);
 	if (user->getUser().length() && user->getPasswdOK() && !user->hasBeenWelcomed())
@@ -326,11 +352,26 @@ void	Server::_userCmd(User *user, std::string buf)
 
 void	Server::_quitCmd(User *user, std::string buf)
 {
+	Channel	*channel;
+
 	while (user->isInChan())
-		_partCmd(user, user->getFirstChan()->getName() + " :" + &(user->getFirstChan()->getName()[1]));
-	user->sendReply(RPL_QUIT(user->getNickname(), (buf.empty() ? "Leaving" : buf)));
-	close(user->getFd());
-	_users.erase(user->getFd());
+	{
+		channel = user->getFirstChan();
+		channel->broadcast(user, RPL_QUIT(user->getNickname(), (buf.empty() ? "Leaving" : buf)));
+		user->delChan(channel);
+		if (channel->getUserCount() == 0)
+			_delChannel(channel);
+	}
+	int	fd = user->getFd();
+
+	close(fd);
+	_users.erase(fd);
+	for (pfds_iterator it = _pfds.begin(); it != _pfds.end(); ++it)
+	{
+		if (it->fd == fd)
+			_pfds.erase(it);
+	}
+	delete user;
 }
 
 void	Server::_pingCmd(User *user, std::string buf)
@@ -340,46 +381,6 @@ void	Server::_pingCmd(User *user, std::string buf)
 	if (buf != _host && buf != "IRC")
 		return (user->sendReply(ERR_NOSUCHSERVER(buf)));
 	user->sendReply(RPL_PONG(user->getNickname(), _host));
-}
-
-void	Server::_modeCmd(User *user, std::string buf)
-{
-	std::cout << "buf : <" << buf << ">" << std::endl;
-	if (buf.empty())
-		user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "MODE"));
-	else if (buf[0] == '#' || buf[0] == '&')
-		_channelModeCmd(user, buf);
-	else
-		_userModeCmd(user, buf);
-}
-
-void	Server::_topicCmd(User *user, std::string buf)
-{
-	std::string	chan_name;
-	if (buf.find(' ') != std::string::npos)
-		chan_name = buf.substr(0, buf.find(' '));
-	else
-		chan_name = buf;
-	try
-	{
-		Channel*	chan = _chans.at(chan_name);
-		if (buf.find(':') == std::string::npos)
-		{
-			if (chan->getTopic() == "")
-				return (user->sendReply(RPL_NOTOPIC(user->getNickname(), chan_name)));
-			return (user->sendReply(RPL_TOPIC(user->getNickname(), chan_name, chan->getTopic())));
-		}
-		std::string	topic = buf.substr(buf.find(':') + 1);
-
-		if (chan->hasMode('t') && !chan->userIsOperator(user))
-			return (user->sendReply(ERR_CHANOPRIVSNEEDED(chan_name)));
-		chan->setTopic(topic, user->getNickname());
-		return (chan->broadcast(user, RPL_TOPIC(user->getNickname(), chan_name, chan->getTopic())));
-	}
-	catch (const std::out_of_range &e)
-	{
-		user->sendReply(ERR_NOTONCHANNEL(chan_name));
-	}
 }
 
 void	Server::_joinCmd(User *user, std::string buf)
@@ -399,7 +400,7 @@ void	Server::_joinCmd(User *user, std::string buf)
 		try
 		{
 			channel = _chans.at(*chan);
-			if (channel->isInviteOnly())
+			if (channel->isInviteOnly() && !channel->userIsInvitee(user))
 			{
 				user->sendReply(ERR_INVITEONLYCHAN(channel->getName()));
 				break;
@@ -411,7 +412,7 @@ void	Server::_joinCmd(User *user, std::string buf)
 			}
 			if (channel->userIsBan(user))
 			{
-				user->sendReply(ERR_BANNEDFROMCHAN(channel->getName()));
+				user->sendReply(ERR_BANNEDFROMCHAN(user->getNickname(), channel->getName()));
 				break;
 			}
 			if (channel->isKeyProtect())
@@ -422,6 +423,8 @@ void	Server::_joinCmd(User *user, std::string buf)
 					break;
 				}
 			}
+			if (channel->userIsInvitee(user))
+				channel->delInvitee(user);
 			channel->addUser(user);
 			channel->broadcast(user, RPL_JOIN(user->getNickname(), *chan));
 			if (channel->getTopic() != "")
@@ -429,13 +432,13 @@ void	Server::_joinCmd(User *user, std::string buf)
 				user->sendReply(RPL_TOPIC(user->getNickname(), channel->getName(), channel->getTopic()));
 				channel->rpl_topicwhotime(user);
 			}
-			channel->rpl_namreply(user);
+			channel->rpl_namreply(user, true, true);
 		}
 		catch (const std::out_of_range &e)
 		{
 			channel = _createChan(user, *chan, keys[chan - channels.begin()]);
 			channel->broadcast(user, RPL_JOIN(user->getNickname(), *chan));
-			channel->rpl_namreply(user);
+			channel->rpl_namreply(user, true, true);
 		}
 	}
 }
@@ -459,14 +462,217 @@ void	Server::_partCmd(User *user, std::string buf)
 			channel->broadcast(user, RPL_PART(user->getNickname(), channel_name));
 			user->delChan(channel);
 			if (channel->getUserCount() == 0)
-				this->_delChannel(channel);
+				_delChannel(channel);
 		}
 		else
-			user->sendReply(ERR_NOTONCHANNEL(channel_name));
+			user->sendReply(ERR_NOTONCHANNEL(user->getNickname(), channel_name));
 	}
 	catch (const std::out_of_range &e)
 	{
 		user->sendReply(ERR_NOSUCHCHANNEL(channel_name));
+	}
+}
+
+void	Server::_modeCmd(User *user, std::string buf)
+{
+	std::cout << "buf : <" << buf << ">" << std::endl;
+	if (buf.empty())
+		user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "MODE"));
+	else if (buf[0] == '#' || buf[0] == '&')
+		_channelModeCmd(user, buf);
+	else
+		_userModeCmd(user, buf);
+}
+
+void	Server::_topicCmd(User *user, std::string buf)
+{
+	if (buf.empty())
+		return (user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "TOPIC")));
+	std::string	chan_name;
+	if (buf.find(' ') != std::string::npos)
+		chan_name = buf.substr(0, buf.find(' '));
+	else
+		chan_name = buf;
+	try
+	{
+		Channel*	chan = _chans.at(chan_name);
+		if (buf.find(':') == std::string::npos)
+		{
+			if (chan->getTopic() == "")
+				return (user->sendReply(RPL_NOTOPIC(user->getNickname(), chan_name)));
+			return (user->sendReply(RPL_TOPIC(user->getNickname(), chan_name, chan->getTopic())));
+		}
+		std::string	topic = buf.substr(buf.find(':') + 1);
+
+		if (chan->hasMode('t') && !chan->userIsOperator(user))
+			return (user->sendReply(ERR_CHANOPRIVSNEEDED(user->getNickname(), chan_name)));
+		chan->setTopic(topic, user->getNickname());
+		return (chan->broadcast(user, RPL_TOPIC(user->getNickname(), chan_name, chan->getTopic())));
+	}
+	catch (const std::out_of_range &e)
+	{
+		user->sendReply(ERR_NOTONCHANNEL(user->getNickname(), chan_name));
+	}
+}
+
+void	Server::_namesCmd(User *user, std::string buf)
+{
+	if (!user->hasBeenWelcomed())
+		return;
+	if (buf.empty())
+	{
+		for (chans_iterator it = _chans.begin(); it != _chans.end(); ++it)
+		{
+			if (!it->second->userIsIn(user) && (it->second->isPrivate() || it->second->isSecret()))
+				break;
+			it->second->rpl_namreply(user, it->second->userIsIn(user), false);
+		}
+		std::string	nicks;
+		for (users_iterator it = _users.begin(); it != _users.end(); ++it)
+		{
+			if (it->second->isVisible() && (!it->second->isInVisibleChannel() || !it->second->isInChan()))
+				nicks += it->second->getNickname() + " ";
+		}
+		if (nicks.size())
+			nicks.erase(nicks.size() - 1, 1);
+		user->sendReply(RPL_NAMREPLY(user->getNickname(), "=", "*", nicks));
+		user->sendReply(RPL_ENDOFNAMES(user->getNickname(), "*"));
+	}
+	else
+	{
+		try
+		{
+			Channel	*channel = _chans.at(buf);
+
+			channel->rpl_namreply(user, channel->userIsIn(user), true);
+		}
+		catch (const std::out_of_range &e)
+		{
+			user->sendReply(RPL_ENDOFNAMES(user->getNickname(), buf));
+		}
+	}
+}
+
+void	Server::_listCmd(User *user, std::string buf)
+{
+	if (!user->hasBeenWelcomed())
+		return;
+	Channel	*channel;
+	std::stringstream	ss;
+	std::string			count;
+
+	user->sendReply(RPL_LISTSTART(user->getNickname()));
+	if (buf.empty())
+	{
+		for (chans_iterator it = _chans.begin(); it != _chans.end(); ++it)
+		{
+			channel = it->second;
+			count = "";
+			ss << channel->getUserCount();
+			ss >> count;
+			ss.clear();
+			if (channel->isPrivate() && !channel->userIsIn(user))
+				user->sendReply(RPL_LIST(user->getNickname(), channel->getName(), count, "Prv"));
+			else if (channel->isSecret() && !channel->userIsIn(user))
+				break;
+			else
+				user->sendReply(RPL_LIST(user->getNickname(), channel->getName(), count, channel->getTopic()));
+		}
+	}
+	else
+	{
+		std::vector<std::string>	channels;
+
+		channels = _getChannels(buf);
+		for (std::vector<std::string>::iterator it = channels.begin(); it != channels.end(); ++it)
+		{
+			try
+			{
+				channel = _chans.at(*it);
+				count = "";
+				ss << channel->getUserCount();
+				ss >> count;
+				ss.clear();
+				if (channel->isPrivate() && !channel->userIsIn(user))
+					user->sendReply(RPL_LIST(user->getNickname(), channel->getName(), count, "Prv"));
+				else if (channel->isSecret() && !channel->userIsIn(user))
+					break;
+				else
+					user->sendReply(RPL_LIST(user->getNickname(), channel->getName(), count, channel->getTopic()));
+
+			}
+			catch (const std::out_of_range &e) {}
+		}
+	}
+	user->sendReply(RPL_LISTEND(user->getNickname()));
+}
+
+void	Server::_inviteCmd(User *user, std::string buf)
+{
+	if (!user->hasBeenWelcomed())
+		return;
+	if (buf.empty() || buf.find(' ') == std::string::npos)
+		user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "INVITE"));
+	std::string	target_name = buf.substr(0, buf.find(' '));
+	buf = buf.substr(buf.find(' ') + 1);
+	std::string	channel_name = buf.substr(0, buf.find(' '));
+	User	*target = _getUserByNick(target_name);
+
+	if (!target)
+		return (user->sendReply(ERR_NOSUCHNICK(user->getNickname(), target_name)));
+	try
+	{
+		Channel	*channel = _chans.at(channel_name);
+
+		if (!channel->userIsIn(user))
+			return (user->sendReply(ERR_NOTONCHANNEL(user->getNickname(), channel_name)));
+		if (channel->userIsIn(target))
+			return (user->sendReply(ERR_USERONCHANNEL(user->getNickname(), target_name, channel_name)));
+		if (!channel->userIsOperator(user))
+			return (user->sendReply(ERR_CHANOPRIVSNEEDED(user->getNickname(), channel_name)));
+		user->sendReply(RPL_INVITING(user->getNickname(), target_name, channel_name));
+		target->sendReply(RPL_INVITE(target_name, user->getNickname(), channel_name));
+		channel->addInvitee(target);
+	}
+	catch (const std::out_of_range &e)
+	{
+	}
+}
+
+void	Server::_kickCmd(User *user, std::string buf)
+{
+	if (!user->hasBeenWelcomed())
+		return;
+	if (buf.find(' ') == std::string::npos)	
+		return (user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "KICK")));
+	std::string	channel_name = buf.substr(0, buf.find(' '));
+
+	buf = buf.substr(buf.find(' ') + 1);
+	try
+	{
+		Channel	*channel = _chans.at(channel_name);
+		if (!channel->userIsIn(user))
+			return (user->sendReply(ERR_NOTONCHANNEL(user->getNickname(), channel_name)));
+		if (buf.find(' ') == std::string::npos)
+			return (user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "KICK")));
+		std::string	target_name = buf.substr(0, buf.find(' '));
+		buf = buf.substr(buf.find(' ') + 1);
+
+		User	*target = _getUserByNick(target_name);
+		if (!target)
+			return (user->sendReply(ERR_USERNOTINCHANNEL(user->getNickname(), target_name, channel_name)));
+		if (!channel->userIsIn(target))
+			return (user->sendReply(ERR_USERNOTINCHANNEL(user->getNickname(), target_name, channel_name)));
+		if (!channel->userIsOperator(user))
+			return (user->sendReply(ERR_CHANOPRIVSNEEDED(user->getNickname(), channel_name)));
+		channel->broadcast(user, RPL_KICK(user->getNickname(), target_name, channel_name, buf));
+		channel->delUser(target);
+		if (channel->getUserCount() == 0)
+			_delChannel(channel);
+	}
+	catch (const std::out_of_range &e)
+	{
+		return (user->sendReply(ERR_NOSUCHCHANNEL(channel_name)));
 	}
 }
 
@@ -479,7 +685,7 @@ void	Server::_msgToUser(User *user, std::string dest, std::string msg)
 		if (it->second->getNickname() == dest)
 			return (it->second->sendReply(RPL_PRIVMSG(nick, dest, msg)));
 	}
-	user->sendReply(ERR_NOSUCHNICK(user->getNickname()));
+	user->sendReply(ERR_NOSUCHNICK(user->getNickname(), dest));
 }
 
 void	Server::_msgToChannel(User *user, std::string dest, std::string msg)

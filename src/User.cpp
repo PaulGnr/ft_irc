@@ -1,9 +1,9 @@
 #include "User.hpp"
 
-User::User(): mode(""), _nickname(""), _hostname(""), _user(""), _server(""), _welcomed(false), _passwdOK(false), _addr(NULL)
+User::User(): _nickname(""), _hostname(""), _user(""), _server(""), _welcomed(false), _passwdOK(false), _addr(NULL)
 {}
 
-User::User(int fd, struct sockaddr_storage *addr): mode(""), _nickname(""), _hostname("localhost"), _user(""), _server("IRC"), _message(""), _welcomed(false), _passwdOK(false), _fd(fd), _addr(addr)
+User::User(int fd, struct sockaddr_storage *addr): _nickname(""), _hostname("localhost"), _user(""), _server("IRC"), _message(""), _welcomed(false), _passwdOK(false), _fd(fd), _addr(addr)
 {}
 
 User::~User()
@@ -49,6 +49,23 @@ void	User::delChan(Channel *chan)
 {
 	_chans.erase(chan->getName());
 	chan->delUser(this);
+}
+
+bool	User::isVisible(void)
+{
+	if (_mode.find('i') != std::string::npos)
+		return (false);
+	return (true);
+}
+
+bool	User::isInVisibleChannel(void)
+{
+	for (chans_iterator it = _chans.begin(); it != _chans.end(); ++it)
+	{
+		if (!it->second->isPrivate() && !it->second->isSecret())
+			return (true);
+	}
+	return (false);
 }
 
 bool	User::isInChan(void)

@@ -29,7 +29,7 @@ void	Server::_channelModeCmd(User *user, std::string buf)
 		if (chan_name == buf)
 			return (user->sendReply(RPL_CHANNELMODEIS(user->getNickname(), chan_name, channel->getMode(), "")));
 		if (!channel->userIsOperator(user))
-			return (user->sendReply(ERR_CHANOPRIVSNEEDED(chan_name)));
+			return (user->sendReply(ERR_CHANOPRIVSNEEDED(user->getNickname(), chan_name)));
 		buf = buf.substr(buf.find(' ') + 1);
 		if (buf[0] != '+' && buf[0] != '-')
 			return (user->sendReply(ERR_UMODEUNKNOWNFLAG()));
@@ -68,7 +68,7 @@ void	Server::_chanModeO(char sign, Channel *channel, User *user, std::string buf
 	User		*target = _getUserByNick(nick);
 
 	if (!channel->userIsIn(target))
-		return (user->sendReply(ERR_NOSUCHNICK(nick)));
+		return (user->sendReply(ERR_NOSUCHNICK(user->getNickname(), nick)));
 	if (sign == '+' && !channel->userIsOperator(target))
 	{
 		channel->addOperator(target);
@@ -158,15 +158,26 @@ void	Server::_chanModeL(char sign, Channel *channel, User *user, std::string buf
 
 void	Server::_chanModeB(char sign, Channel *channel, User *user, std::string buf)
 {
+	if (buf.find(' ') == std::string::npos && sign == '+')
+		return (channel->rpl_banlist(user));
 	std::string	nick = buf.substr(buf.find_last_of(' ') + 1);
 	User*		target = _getUserByNick(nick);
 
 	if (target == _users.end()->second)
-		return (user->sendReply(ERR_NOSUCHNICK(nick)));
+		return (user->sendReply(ERR_NOSUCHNICK(user->getNickname(), nick)));
 	if (sign == '-')
 		channel->delBan(target);
 	if (sign == '+')
+	{
 		channel->addBan(target);
+		if (channel->userIsIn(target))
+		{
+			channel->broadcast(user, RPL_KICK(user->getNickname(), nick, channel->getName(), "banned"));
+			channel->delUser(target);
+			if (channel->getUserCount() == 0)
+				_delChannel(channel);
+		}
+	}
 }
 
 void	Server::_chanModeV(char sign, Channel *channel, User *user, std::string buf)
@@ -180,7 +191,7 @@ void	Server::_chanModeV(char sign, Channel *channel, User *user, std::string buf
 	User*		target = _getUserByNick(nick);
 
 	if (target == _users.end()->second)
-		return (user->sendReply(ERR_NOSUCHNICK(nick)));
+		return (user->sendReply(ERR_NOSUCHNICK(user->getNickname(), nick)));
 	if (sign == '-')
 		channel->delModerate(target);
 	if (sign == '+')

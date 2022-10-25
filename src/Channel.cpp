@@ -36,6 +36,7 @@ void	Channel::delUser(User *user)
 {
 	_users.erase(user->getFd());
 	_operators.erase(user->getFd());
+	_moderate.erase(user->getFd());
 }
 
 void	Channel::addOperator(User *user)
@@ -66,6 +67,16 @@ void	Channel::addModerate(User *user)
 void	Channel::delModerate(User *user)
 {
 	_moderate.erase(user->getFd());
+}
+
+void	Channel::addInvitee(User *user)
+{
+	_invitee.insert(std::make_pair(user->getFd(), user));
+}
+
+void	Channel::delInvitee(User *user)
+{
+	_invitee.erase(user->getFd());
 }
 
 bool	Channel::userIsIn(User *user)
@@ -120,6 +131,19 @@ bool	Channel::userIsModerate(User *user)
 	return (true);
 }
 
+bool	Channel::userIsInvitee(User *user)
+{
+	try
+	{
+		_invitee.at(user->getFd());
+	}
+	catch (const std::out_of_range &e)
+	{
+		return (false);
+	}
+	return (true);
+}
+
 bool	Channel::isEmpty()
 {
 	if (_users.size())
@@ -149,6 +173,20 @@ bool	Channel::wrongMode(char c)
 bool	Channel::hasMode(char c)
 {
 	if (_mode.find(c) != std::string::npos)
+		return (true);
+	return (false);
+}
+
+bool	Channel::isPrivate(void)
+{
+	if (_mode.find('p') != std::string::npos)
+		return (true);
+	return (false);
+}
+
+bool	Channel::isSecret(void)
+{
+	if (_mode.find('s') != std::string::npos)
 		return (true);
 	return (false);
 }
@@ -195,20 +233,23 @@ void	Channel::rpl_topicwhotime(User *user)
 	user->sendReply(RPL_TOPICWHOTIME(user->getNickname(), _name, _topicSetter, _topicTime));
 }
 
-void	Channel::rpl_namreply(User *user)
+void	Channel::rpl_namreply(User *user, bool isIn, bool endList)
 {
 	std::string	nicks;
 	std::string	symbol;
 
-	for (std::map<int, User *>::iterator usr = _users.begin(); usr != _users.end(); ++usr)
+	for (users_iterator it = _users.begin(); it != _users.end(); ++it)
 	{
-		if (_operators.find(usr->first) != _operators.end())
+		if (!isIn && it->second->getMode().find('i') != std::string::npos)
+			break;
+		if (_operators.find(it->first) != _operators.end())
 			nicks += "@";
-		if (_moderate.find(usr->first) != _moderate.end())
+		if (_moderate.find(it->first) != _moderate.end())
 			nicks += "+";
-		nicks += usr->second->getNickname() + " ";
+		nicks += it->second->getNickname() + " ";
 	}
-	nicks.erase(nicks.size() - 1, 1);
+	if (nicks.size())
+		nicks.erase(nicks.size() - 1, 1);
 	if (_mode.find('s') != std::string::npos)
 		symbol = "@";
 	else if (_mode.find('p') != std::string::npos)
@@ -216,7 +257,17 @@ void	Channel::rpl_namreply(User *user)
 	else
 		symbol = "=";
 	user->sendReply(RPL_NAMREPLY(user->getNickname(), symbol, _name, nicks));
-	user->sendReply(RPL_ENDOFNAMES(user->getNickname(), _name));
+	if (endList)
+		user->sendReply(RPL_ENDOFNAMES(user->getNickname(), _name));
+}
+
+void	Channel::rpl_banlist(User *user)
+{
+	for (std::map<int, User *>::iterator it = _ban.begin(); it != _ban.end(); ++it)
+	{
+		user->sendReply(RPL_BANLIST(user->getNickname(), _name, it->second->getNickname()));
+	}
+	user->sendReply(RPL_ENDOFBANLIST(user->getNickname(), _name));
 }
 
 void	Channel::broadcast(User *user, std::string msg)

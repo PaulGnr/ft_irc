@@ -5,6 +5,8 @@
 
 class User
 {
+	typedef	std::map<std::string, Channel *>::iterator chans_iterator;
+
 	public:
 		User();
 		~User();
@@ -33,6 +35,8 @@ class User
 		void		delMode(char c);
 		void		addChan(Channel *chan);
 		void		delChan(Channel *chan);
+		bool		isVisible(void);
+		bool		isInVisibleChannel(void);
 		bool		isInChan(void);
 		Channel*	getFirstChan(void);
 
@@ -42,8 +46,6 @@ class User
 		void	welcome(void);
 
 		bool	wrongMode(char c);
-
-		std::string	mode;
 
 	private:
 

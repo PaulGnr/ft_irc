@@ -2,14 +2,26 @@
 
 void	Server::_userModeCmd(User *user, std::string buf)
 {
-	std::string	nick = buf.substr(0, buf.find(' '));
-	User*		target = _getUserByNick(nick);
+	std::string	nick;
+	if (buf.find(' ') == std::string::npos)
+	{
+		nick = buf;
+		buf.clear();
+	}
+	else
+	{
+		nick = buf.substr(0, buf.find(' '));
+		buf = buf.substr(buf.find(' ') + 1);
+	}
+	User*	target = _getUserByNick(nick);
 
+	std::cout << "userModeCmd nick <" << nick << ">" << std::endl;
 	if (target == NULL)
-		return (user->sendReply(ERR_NOSUCHNICK(nick)));
+		return (user->sendReply(ERR_NOSUCHNICK(user->getNickname(), nick)));
 	if (target != user)
 		return (user->sendReply(ERR_USERSDONTMATCH()));
-	buf = buf.substr(buf.find(' ') + 1);
+	if (buf.empty())
+		return (user->sendReply(RPL_UMODEIS(nick, user->getMode())));
 	if (buf[0] != '+' && buf[0] != '-')
 		return (user->sendReply(ERR_UMODEUNKNOWNFLAG()));
 	size_t		i = 0;
