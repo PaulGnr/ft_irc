@@ -15,7 +15,6 @@ void	Server::_userModeCmd(User *user, std::string buf)
 	}
 	User*	target = _getUserByNick(nick);
 
-	std::cout << "userModeCmd nick <" << nick << ">" << std::endl;
 	if (target == NULL)
 		return (user->sendReply(ERR_NOSUCHNICK(user->getNickname(), nick)));
 	if (target != user)
@@ -36,5 +35,4 @@ void	Server::_userModeCmd(User *user, std::string buf)
 		else if (buf[0] == '-')
 			user->delMode(buf[i]);
 	}
-	std::cout << nick << "->mode : <" << user->getMode() << ">" << std::endl;
 }

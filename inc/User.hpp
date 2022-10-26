@@ -15,6 +15,7 @@ class User
 		void	setNickname(std::string nickname);
 		void	setHostname(std::string hostname);
 		void	setUser(std::string user);
+		void	setRealname(std::string realname);
 		void	setServer(std::string server);
 		void	setMessage(std::string message);
 		void	setWelcomed(bool welcomed);
@@ -24,6 +25,7 @@ class User
 		std::string	getNickname(void) const;
 		std::string	getHostname(void) const;
 		std::string	getUser(void) const;
+		std::string	getRealname(void) const;
 		std::string	getServer(void) const;
 		std::string	getMessage(void) const;
 		std::string	getMode(void) const;
@@ -52,6 +54,7 @@ class User
 		std::string							_nickname;
 		std::string							_hostname;
 		std::string							_user;
+		std::string							_realname;
 		std::string							_server;
 		std::string							_message;
 		std::string							_mode;

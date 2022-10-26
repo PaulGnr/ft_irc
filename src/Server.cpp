@@ -84,7 +84,6 @@ void	Server::_createCmd(void)
 	_cmd.insert(std::make_pair("NICK", &Server::_nickCmd));
 	_cmd.insert(std::make_pair("USER", &Server::_userCmd));
 	_cmd.insert(std::make_pair("QUIT", &Server::_quitCmd));
-	_cmd.insert(std::make_pair("PING", &Server::_pingCmd));
 	_cmd.insert(std::make_pair("JOIN", &Server::_joinCmd));
 	_cmd.insert(std::make_pair("PART", &Server::_partCmd));
 	_cmd.insert(std::make_pair("MODE", &Server::_modeCmd));
@@ -95,6 +94,8 @@ void	Server::_createCmd(void)
 	_cmd.insert(std::make_pair("KICK", &Server::_kickCmd));
 	_cmd.insert(std::make_pair("PRIVMSG", &Server::_privmsgCmd));
 	_cmd.insert(std::make_pair("NOTICE", &Server::_noticeCmd));
+	_cmd.insert(std::make_pair("WHO", &Server::_whoCmd));
+	_cmd.insert(std::make_pair("PING", &Server::_pingCmd));
 }
 
 void	Server::_clientConnect(void)
@@ -139,6 +140,20 @@ void	Server::_clientMessage(pfds_iterator &it)
 	catch (const std::out_of_range &e)
 	{
 		std::cout << "Out of range from _clientMessage" << std::endl;
+		int			fd = it->fd;
+		int			nbytes = 0;
+		char		buf[1024];
+		std::string	str;
+
+		while (str.rfind("\r\n") != str.length() - 2 || str.length() <= 2)
+		{
+			memset(buf, 0, sizeof(buf));
+			nbytes = recv(fd, buf, sizeof(buf), 0);
+			if (nbytes <= 0)
+				break ;
+			str.append(buf);
+		}
+		std::cout << "Message sent <" << str << ">" << std::endl;
 	}
 }
 
@@ -343,15 +358,38 @@ void	Server::_userCmd(User *user, std::string buf)
 		return (user->sendReply(ERR_ALREADYREGISTERED(user->getNickname())));
 	if (buf.empty())
 		return (user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "USER")));
-	if (buf.find(' ') != std::string::npos)
-		buf = buf.substr(0, buf.find(' '));
-	user->setUser(buf);
-	if (user->getNickname().length() && user->getPasswdOK() && !user->hasBeenWelcomed())
+	std::string	username;
+	std::string	hostname;
+	std::string	server;
+	std::string	realname;
+	if (buf.find(' ') == std::string::npos)
+		return (user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "USER")));
+	username = buf.substr(0, buf.find(' '));
+	buf = buf.substr(buf.find(' '));
+	buf = buf.substr(buf.find_first_not_of(' '));
+	if (buf.find(' ') == std::string::npos)
+		return (user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "USER")));
+	hostname = buf.substr(0, buf.find(' '));
+	buf = buf.substr(buf.find(' '));
+	buf = buf.substr(buf.find_first_not_of(' '));
+	if (buf.find(' ') == std::string::npos)
+		return (user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "USER")));
+	server = buf.substr(0, buf.find(' '));
+	buf = buf.substr(buf.find(' '));
+	buf = buf.substr(buf.find_first_not_of(' '));
+	if (buf.find(':') == std::string::npos)
+		return (user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "USER")));
+	realname = buf.substr(1, buf.find_last_not_of(' '));
+	user->setUser(username);
+	user->setRealname(realname);
+	if (user->getNickname().size() && user->getPasswdOK() && !user->hasBeenWelcomed())
 		user->welcome();
 }
 
 void	Server::_quitCmd(User *user, std::string buf)
 {
+	if (!user->hasBeenWelcomed())
+		return;
 	Channel	*channel;
 
 	while (user->isInChan())
@@ -366,21 +404,24 @@ void	Server::_quitCmd(User *user, std::string buf)
 
 	close(fd);
 	_users.erase(fd);
-	for (pfds_iterator it = _pfds.begin(); it != _pfds.end(); ++it)
+	for (std::vector<struct pollfd>::iterator it = _pfds.begin(); it->fd != 0; ++it)
 	{
+		std::cout << "Iterator : fd <" << it->fd << ">" << std::endl;
 		if (it->fd == fd)
+		{
+			std::cout << "Erase _pfds[" << it - _pfds.begin() << "]" << std::endl;
 			_pfds.erase(it);
+		}
 	}
+	/*
+	for (size_t i = 0; i < _pfds.size(); ++i)
+	{
+		if (_pfds[i].fd == fd)
+			_pfds.erase(_pfds.begin() + i);
+	}
+	*/
+	std::cout << "Segfault ?" << std::endl;
 	delete user;
-}
-
-void	Server::_pingCmd(User *user, std::string buf)
-{
-	if (buf.empty())
-		return (user->sendReply(ERR_NOORIGIN()));
-	if (buf != _host && buf != "IRC")
-		return (user->sendReply(ERR_NOSUCHSERVER(buf)));
-	user->sendReply(RPL_PONG(user->getNickname(), _host));
 }
 
 void	Server::_joinCmd(User *user, std::string buf)
@@ -475,7 +516,8 @@ void	Server::_partCmd(User *user, std::string buf)
 
 void	Server::_modeCmd(User *user, std::string buf)
 {
-	std::cout << "buf : <" << buf << ">" << std::endl;
+	if (!user->hasBeenWelcomed())
+		return;
 	if (buf.empty())
 		user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "MODE"));
 	else if (buf[0] == '#' || buf[0] == '&')
@@ -486,6 +528,8 @@ void	Server::_modeCmd(User *user, std::string buf)
 
 void	Server::_topicCmd(User *user, std::string buf)
 {
+	if (!user->hasBeenWelcomed())
+		return;
 	if (buf.empty())
 		return (user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "TOPIC")));
 	std::string	chan_name;
@@ -571,10 +615,10 @@ void	Server::_listCmd(User *user, std::string buf)
 			ss << channel->getUserCount();
 			ss >> count;
 			ss.clear();
-			if (channel->isPrivate() && !channel->userIsIn(user))
-				user->sendReply(RPL_LIST(user->getNickname(), channel->getName(), count, "Prv"));
-			else if (channel->isSecret() && !channel->userIsIn(user))
+			if (channel->isSecret() && !channel->userIsIn(user))
 				break;
+			else if (channel->isPrivate() && !channel->userIsIn(user))
+				user->sendReply(RPL_LIST(user->getNickname(), channel->getName(), count, "Prv"));
 			else
 				user->sendReply(RPL_LIST(user->getNickname(), channel->getName(), count, channel->getTopic()));
 		}
@@ -752,4 +796,41 @@ void	Server::_noticeCmd(User *user, std::string buf)
 				return (it->second->sendReply(RPL_PRIVMSG(user->getNickname(), dest, msg)));
 		}
 	}
+}
+
+void	Server::_whoCmd(User *user, std::string buf)
+{
+	if (!user->hasBeenWelcomed())
+		return;
+	buf = buf.substr(0, buf.find(' '));
+	try
+	{
+		Channel	*channel = _chans.at(buf);
+
+		if ((!channel->isPrivate() && !channel->isSecret())
+			|| (channel->isPrivate() && channel->userIsIn(user))
+			|| (channel->isSecret() && channel->userIsIn(user)))
+		{
+			channel->rpl_whoreply(user);
+		}
+	}
+	catch (const std::out_of_range &e)
+	{
+		User	*who = _getUserByNick(buf);
+
+		if (who && (who->isVisible() || who == user))
+			user->sendReply(RPL_WHOREPLY(user->getNickname(), "*", who->getUser(), who->getHostname(), who->getServer(), who->getNickname(), who->getRealname()));
+	}
+	user->sendReply(RPL_ENDOFWHO(user->getNickname(), buf));
+}
+
+void	Server::_pingCmd(User *user, std::string buf)
+{
+	if (!user->hasBeenWelcomed())
+		return;
+	if (buf.empty())
+		return (user->sendReply(ERR_NOORIGIN()));
+	if (buf != _host && buf != "IRC")
+		return (user->sendReply(ERR_NOSUCHSERVER(buf)));
+	user->sendReply(RPL_PONG(user->getNickname(), _host));
 }

@@ -1,9 +1,9 @@
 #include "User.hpp"
 
-User::User(): _nickname(""), _hostname(""), _user(""), _server(""), _welcomed(false), _passwdOK(false), _addr(NULL)
+User::User(): _nickname(""), _hostname(""), _user(""), _realname(""), _server(""), _welcomed(false), _passwdOK(false), _addr(NULL)
 {}
 
-User::User(int fd, struct sockaddr_storage *addr): _nickname(""), _hostname("localhost"), _user(""), _server("IRC"), _message(""), _welcomed(false), _passwdOK(false), _fd(fd), _addr(addr)
+User::User(int fd, struct sockaddr_storage *addr): _nickname(""), _hostname("localhost"), _user(""), _realname(""), _server("IRC"), _message(""), _welcomed(false), _passwdOK(false), _fd(fd), _addr(addr)
 {}
 
 User::~User()
@@ -12,6 +12,7 @@ User::~User()
 void	User::setNickname(std::string nickname) {_nickname= nickname;}
 void	User::setHostname(std::string hostname) {_hostname = hostname;}
 void	User::setUser(std::string user) {_user = user;}
+void	User::setRealname(std::string realname) {_realname = realname;}
 void	User::setServer(std::string server) {_server = server;}
 void	User::setMessage(std::string message) {_message = message;}
 void	User::setWelcomed(bool welcomed) {_welcomed = welcomed;}
@@ -21,6 +22,7 @@ void	User::setAddr(struct sockaddr_storage *addr) {_addr = addr;}
 std::string		User::getNickname(void) const {return (_nickname);}
 std::string		User::getHostname(void) const {return (_hostname);}
 std::string		User::getUser(void) const {return (_user);}
+std::string		User::getRealname(void) const {return (_realname);}
 std::string		User::getServer(void) const {return (_server);}
 std::string		User::getMessage(void) const {return (_message);}
 std::string		User::getMode(void) const {return (_mode);}

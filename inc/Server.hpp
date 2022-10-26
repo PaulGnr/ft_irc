@@ -68,7 +68,6 @@ class Server
 		void	_nickCmd(User *user, std::string buf);
 		void	_userCmd(User *user, std::string buf);
 		void	_quitCmd(User *user, std::string buf);
-		void	_pingCmd(User *user, std::string buf);
 		void	_joinCmd(User *user, std::string buf);
 		void	_partCmd(User *user, std::string buf);
 		void	_modeCmd(User *user, std::string buf);
@@ -79,6 +78,8 @@ class Server
 		void	_kickCmd(User *user, std::string buf);
 		void	_privmsgCmd(User *user, std::string buf);
 		void	_noticeCmd(User *user, std::string buf);
+		void	_whoCmd(User *user, std::string buf);
+		void	_pingCmd(User *user, std::string buf);
 
 		// Mode Cmd
 

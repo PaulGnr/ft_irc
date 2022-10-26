@@ -27,10 +27,15 @@ void	Server::_channelModeCmd(User *user, std::string buf)
 	{
 		Channel	*channel = _chans.at(chan_name);
 		if (chan_name == buf)
-			return (user->sendReply(RPL_CHANNELMODEIS(user->getNickname(), chan_name, channel->getMode(), "")));
+			return (channel->rpl_channelmodeis(user));
 		if (!channel->userIsOperator(user))
 			return (user->sendReply(ERR_CHANOPRIVSNEEDED(user->getNickname(), chan_name)));
 		buf = buf.substr(buf.find(' ') + 1);
+		if (buf[0] == 'b')
+		{
+			std::cout << "Hello from MODE * b" << std::endl;
+			return(channel->rpl_banlist(user));
+		}
 		if (buf[0] != '+' && buf[0] != '-')
 			return (user->sendReply(ERR_UMODEUNKNOWNFLAG()));
 		size_t	i = 0;
@@ -145,20 +150,30 @@ void	Server::_chanModeL(char sign, Channel *channel, User *user, std::string buf
 {
 	std::stringstream	ss;
 
+	std::cout << "_chanModeL buf <" << buf << ">" << std::endl;
 	if (sign == '-')
+	{
 		channel->setLimit(-1);
+		channel->delMode('l');
+	}
 	if (buf.find(' ') == std::string::npos)
 		return (user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "MODE")));
 	size_t	limit;
-	ss << buf.substr(buf.find(' ') + 1);
+
+	buf = buf.substr(buf.find_first_not_of(' '));
+	ss << buf.substr(0, buf.find(' '));
 	ss >> limit;
 	if (sign == '+')
+	{
 		channel->setLimit(limit);
+		channel->addMode('l');
+	}
+	std::cout << "channel mode : <" << channel->getMode() << ">" << std::endl;
 }
 
 void	Server::_chanModeB(char sign, Channel *channel, User *user, std::string buf)
 {
-	if (buf.find(' ') == std::string::npos && sign == '+')
+	if (buf.find(' ') == std::string::npos)
 		return (channel->rpl_banlist(user));
 	std::string	nick = buf.substr(buf.find_last_of(' ') + 1);
 	User*		target = _getUserByNick(nick);

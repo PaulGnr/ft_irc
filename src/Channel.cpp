@@ -233,6 +233,18 @@ void	Channel::rpl_topicwhotime(User *user)
 	user->sendReply(RPL_TOPICWHOTIME(user->getNickname(), _name, _topicSetter, _topicTime));
 }
 
+void	Channel::rpl_whoreply(User *user)
+{
+	User	*who;
+	for (users_iterator it = _users.begin(); it != _users.end(); ++it)
+	{
+		who = it->second;
+		if (!who->isVisible())
+			break;
+		user->sendReply(RPL_WHOREPLY(user->getNickname(), _name, who->getUser(), who->getHostname(), who->getServer(), who->getNickname(), who->getRealname()));
+	}
+}
+
 void	Channel::rpl_namreply(User *user, bool isIn, bool endList)
 {
 	std::string	nicks;
@@ -240,7 +252,7 @@ void	Channel::rpl_namreply(User *user, bool isIn, bool endList)
 
 	for (users_iterator it = _users.begin(); it != _users.end(); ++it)
 	{
-		if (!isIn && it->second->getMode().find('i') != std::string::npos)
+		if (!isIn && !it->second->isVisible())
 			break;
 		if (_operators.find(it->first) != _operators.end())
 			nicks += "@";
@@ -268,6 +280,30 @@ void	Channel::rpl_banlist(User *user)
 		user->sendReply(RPL_BANLIST(user->getNickname(), _name, it->second->getNickname()));
 	}
 	user->sendReply(RPL_ENDOFBANLIST(user->getNickname(), _name));
+}
+
+void	Channel::rpl_channelmodeis(User *user)
+{
+	std::string			modes;
+	std::string			params;
+	std::stringstream	ss;
+
+	for (size_t i = 0; i < _mode.size(); ++i)
+	{
+		if (i > 0)
+			modes += " ";
+		modes += '+';
+		modes += _mode[i];
+		if (_mode[i] == 'l')
+		{
+			params = "";
+			ss << _limit;
+			ss >> params;
+			ss.clear();
+			modes += " " + params;
+		}
+	}
+	user->sendReply(RPL_CHANNELMODEIS(user->getNickname(), _name, modes));
 }
 
 void	Channel::broadcast(User *user, std::string msg)

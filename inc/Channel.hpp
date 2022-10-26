@@ -54,8 +54,10 @@ class Channel
 		bool	checkKey(std::string key);
 
 		void	rpl_topicwhotime(User *user);
+		void	rpl_whoreply(User *user);
 		void	rpl_namreply(User *user, bool isIn, bool endList);
 		void	rpl_banlist(User *user);
+		void	rpl_channelmodeis(User *user);
 
 		void	broadcast(User *user, std::string msg); 
 		void	privmsg(User *user, std::string msg); 

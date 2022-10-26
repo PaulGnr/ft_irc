@@ -64,6 +64,7 @@ class User;
 #define ERR_USERSDONTMATCH() 						":IRC 502 :Cant change mode for other users"
 
 #define	RPL_UMODEIS(client, mode)							":IRC 221 " + client + " " + mode
+#define	RPL_ENDOFWHO(client, mask)							":IRC 315 " + client + " " + mask + " :End of WHO list"
 #define	RPL_LISTSTART(client)								":IRC 321 " + client + ":Channel :Users Name"
 #define	RPL_LIST(client, channel, count, topic)				":IRC 322 " + client + " " + channel + " " + count + " :" + topic
 #define	RPL_LISTEND(client)									":IRC 323 " + client + " :End of /LIST"
@@ -72,6 +73,7 @@ class User;
 #define	RPL_TOPIC(client, channel, topic)					":IRC 332 " + client + " " + channel + " :" + topic
 #define	RPL_TOPICWHOTIME(client, channel, nick, setat)		":IRC 333 " + client + " " + channel + " " + nick + " " + setat
 #define	RPL_INVITING(client, nick, channel)					":IRC 341 " + client + " " + nick + " " + channel
+#define	RPL_WHOREPLY(client, channel, username, host, server, nick, realname)	":IRC 352 " + client + " " + channel + " " + username + " " + host + " " + server + " " + nick + " " + "H :1 " + realname
 #define	RPL_NAMREPLY(client, symbol, channel, nicks)		":IRC 353 " + client + " " + symbol + " " + channel + " :" + nicks
 #define	RPL_ENDOFNAMES(client, channel)						":IRC 366 " + client + " " + channel + " :End of /NAMES list"
 #define	RPL_BANLIST(client, channel, nick)					":IRC 367 " + client + " " + channel + " " + nick
