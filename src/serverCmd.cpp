@@ -72,7 +72,6 @@ void	Server::_handleCmd(User *user)
 			user->sendReply("Message error"); //Changer message erreur
 		}
 	}
-	user->clearMsg();
 }
 
 void	Server::_caplsCmd(User *user, std::string buf)
@@ -164,7 +163,7 @@ void	Server::_quitCmd(User *user, std::string buf)
 
 	close(fd);
 	_users.erase(fd);
-	for (std::vector<struct pollfd>::iterator it = _pfds.begin(); it != _pfds.end(); ++it)
+	for (pfds_iterator it = _pfds.begin(); it != _pfds.end(); ++it)
 	{
 		if (it->fd == fd)
 		{

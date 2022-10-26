@@ -58,6 +58,7 @@ class Server
 		void	_sendMsg(User *user, int sender_fd);
 		int		_sendall(int dest_fd, const char *buf, int *nbytes);
 		User*	_getUserByNick(std::string nick);
+		void	_clean(void);
 
 		// Command related functions
 

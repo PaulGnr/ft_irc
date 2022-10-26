@@ -1,5 +1,7 @@
 #include "Server.hpp"
 
+bool	running;
+
 Server::Server() : _port(""), _password(""), _host("")
 {}
 
@@ -27,7 +29,7 @@ void	Server::_poll_handler(void)
 
 	std::cout << "Waiting for clients..." << std::endl;
 
-	while (true)
+	while (running)
 	{
 		poll(_pfds.data(), _pfds.size(), -1);
 
@@ -51,6 +53,7 @@ void	Server::_poll_handler(void)
 				break;
 		}
 	}
+	_clean();
 }
 
 void	Server::_createListener(void)
@@ -72,10 +75,18 @@ void	Server::_createListener(void)
 		throw std::runtime_error("Error while opening socket.");
 
 	if (bind(sockfd, serv_address->ai_addr, serv_address->ai_addrlen) < 0)
+	{
+		freeaddrinfo(serv_address);
+		close(sockfd);
 		throw std::runtime_error("Error while binding socket.");
+	}
+	freeaddrinfo(serv_address);
 
 	if (listen(sockfd, 1000) < 0)
+	{
+		close(sockfd);
 		throw std::runtime_error("Error while listening on socket.");
+	}
 	_listener = sockfd;
 }
 
@@ -131,6 +142,7 @@ int	Server::_getMessage(User *user)
 	char		buf[1024];
 	std::string	str;
 
+	user->clearMsg();
 	while (str.rfind("\r\n") != str.length() - 2 || str.length() <= 2)
 	{
 		memset(buf, 0, sizeof(buf));
@@ -232,4 +244,20 @@ User	*Server::_getUserByNick(std::string nick)
 			break;
 	}
 	return (it->second);
+}
+
+void	Server::_clean(void)
+{
+	for (chans_iterator it = _chans.begin(); it != _chans.end(); ++it)
+	{
+		delete it->second;
+	}
+	for (users_iterator it = _users.begin(); it != _users.end(); ++it)
+	{
+		delete it->second;
+	}
+	for (pfds_iterator it = _pfds.begin(); it != _pfds.end(); ++it)
+	{
+		close(it->fd);
+	}
 }

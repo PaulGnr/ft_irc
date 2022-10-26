@@ -32,10 +32,7 @@ void	Server::_channelModeCmd(User *user, std::string buf)
 			return (user->sendReply(ERR_CHANOPRIVSNEEDED(user->getNickname(), chan_name)));
 		buf = buf.substr(buf.find(' ') + 1);
 		if (buf[0] == 'b')
-		{
-			std::cout << "Hello from MODE * b" << std::endl;
 			return(channel->rpl_banlist(user));
-		}
 		if (buf[0] != '+' && buf[0] != '-')
 			return (user->sendReply(ERR_UMODEUNKNOWNFLAG()));
 		size_t	i = 0;

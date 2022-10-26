@@ -1,5 +1,7 @@
 #include "ft_irc.hpp"
 
+extern bool	running;
+
 bool	portIsOK(std::string port)
 {
 	std::string::size_type	i;
@@ -21,6 +23,12 @@ bool	portIsOK(std::string port)
 	}
 }
 
+void	sigHandler(int signum)
+{
+	(void)signum;
+	running = false;
+}
+
 int	main(int argc, char **argv)
 {
 	if (argc != 3)
@@ -34,6 +42,8 @@ int	main(int argc, char **argv)
 		std::cerr << "Error : Bad port number." << std::endl;
 		return (1);
 	}
+	running = true;
+	signal(SIGINT, sigHandler);
 	try
 	{
 		Server	server(argv[1], argv[2]);
