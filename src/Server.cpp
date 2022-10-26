@@ -1,5 +1,7 @@
 #include "Server.hpp"
 
+extern bool	running;
+
 bool	running;
 
 Server::Server() : _port(""), _password(""), _host("")
@@ -35,7 +37,7 @@ void	Server::_poll_handler(void)
 
 		for (pfds_iterator it = _pfds.begin(); it != _pfds.end(); it++)
 		{
-			if (it->revents & POLLHUP) // En fait y en a besoin avec irssi
+			if (it->revents & POLLHUP)
 			{
 				std::cout << "pollserver : socket " << it->fd << " hung up" << std::endl;
 				_delUser(it);
@@ -244,6 +246,22 @@ User	*Server::_getUserByNick(std::string nick)
 			break;
 	}
 	return (it->second);
+}
+
+void	Server::_close(User *user)
+{
+	user->sendReply("Please, enter PASS first. Disconnecting.");
+	int	fd = user->getFd();
+	close(fd);
+	for (pfds_iterator it = _pfds.begin(); it != _pfds.end(); ++it)
+	{
+		if (fd == it->fd)
+		{
+			_pfds.erase(it);
+			break;
+		}
+	}
+	_users.erase(fd);
 }
 
 void	Server::_clean(void)
