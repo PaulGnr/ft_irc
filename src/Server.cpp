@@ -45,7 +45,7 @@ void	Server::_poll_handler(void)
 				if (it->fd == _listener)
 				{
 					_clientConnect();
-					break ;
+					break;
 				}
 				_clientMessage(it);
 			}

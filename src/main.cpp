@@ -42,6 +42,11 @@ int	main(int argc, char **argv)
 		std::cerr << "Error : Bad port number." << std::endl;
 		return (1);
 	}
+	if (!argv[2][0])
+	{
+		std::cerr << "Error : No password given." << std::endl;
+		return (1);
+	}
 	running = true;
 	signal(SIGINT, sigHandler);
 	try

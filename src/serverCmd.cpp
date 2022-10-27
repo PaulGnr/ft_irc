@@ -104,9 +104,7 @@ void	Server::_nickCmd(User *user, std::string buf)
 	for (users_iterator it = _users.begin(); it != _users.end(); ++it)
 	{
 		if (it->second->getNickname() == buf)
-		{
 			return (user->sendReply(ERR_NICKCOLLISION(user->getNickname())));
-		}
 	}
 	user->setNickname(buf);
 	if (user->getUser().length() && user->getPasswdOK() && !user->hasBeenWelcomed())
@@ -234,13 +232,13 @@ void	Server::_joinCmd(User *user, std::string buf)
 				user->sendReply(RPL_TOPIC(user->getNickname(), channel->getName(), channel->getTopic()));
 				channel->rpl_topicwhotime(user);
 			}
-			channel->rpl_namreply(user, true, true);
+			channel->rpl_namreply(user, true);
 		}
 		catch (const std::out_of_range &e)
 		{
 			channel = _createChan(user, *chan, keys[chan - channels.begin()]);
 			channel->broadcast(user, RPL_JOIN(user->getNickname(), *chan));
-			channel->rpl_namreply(user, true, true);
+			channel->rpl_namreply(user, true);
 		}
 	}
 }
@@ -340,8 +338,8 @@ void	Server::_namesCmd(User *user, std::string buf)
 		for (chans_iterator it = _chans.begin(); it != _chans.end(); ++it)
 		{
 			if (!it->second->userIsIn(user) && (it->second->isPrivate() || it->second->isSecret()))
-				break;
-			it->second->rpl_namreply(user, it->second->userIsIn(user), false);
+				continue;
+			it->second->rpl_namreply(user, false);
 		}
 		std::string	nicks;
 		for (users_iterator it = _users.begin(); it != _users.end(); ++it)
@@ -360,7 +358,9 @@ void	Server::_namesCmd(User *user, std::string buf)
 		{
 			Channel	*channel = _chans.at(buf);
 
-			channel->rpl_namreply(user, channel->userIsIn(user), true);
+			if (!channel->userIsIn(user) && (channel->isPrivate() || channel->isSecret()))
+				return (user->sendReply(RPL_ENDOFNAMES(user->getNickname(), buf)));
+			channel->rpl_namreply(user, true);
 		}
 		catch (const std::out_of_range &e)
 		{
@@ -390,7 +390,7 @@ void	Server::_listCmd(User *user, std::string buf)
 			ss >> count;
 			ss.clear();
 			if (channel->isSecret() && !channel->userIsIn(user))
-				break;
+				continue;
 			else if (channel->isPrivate() && !channel->userIsIn(user))
 				user->sendReply(RPL_LIST(user->getNickname(), channel->getName(), count, "Prv"));
 			else
@@ -414,7 +414,7 @@ void	Server::_listCmd(User *user, std::string buf)
 				if (channel->isPrivate() && !channel->userIsIn(user))
 					user->sendReply(RPL_LIST(user->getNickname(), channel->getName(), count, "Prv"));
 				else if (channel->isSecret() && !channel->userIsIn(user))
-					break;
+					continue;
 				else
 					user->sendReply(RPL_LIST(user->getNickname(), channel->getName(), count, channel->getTopic()));
 
@@ -475,8 +475,6 @@ void	Server::_kickCmd(User *user, std::string buf)
 		Channel	*channel = _chans.at(channel_name);
 		if (!channel->userIsIn(user))
 			return (user->sendReply(ERR_NOTONCHANNEL(user->getNickname(), channel_name)));
-		if (buf.find(' ') == std::string::npos)
-			return (user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "KICK")));
 		std::string	target_name = buf.substr(0, buf.find(' '));
 		buf = buf.substr(buf.find(' ') + 1);
 
@@ -488,7 +486,7 @@ void	Server::_kickCmd(User *user, std::string buf)
 		if (!channel->userIsOperator(user))
 			return (user->sendReply(ERR_CHANOPRIVSNEEDED(user->getNickname(), channel_name)));
 		channel->broadcast(user, RPL_KICK(user->getNickname(), target_name, channel_name, buf));
-		channel->delUser(target);
+		user->delChan(channel);
 		if (channel->getUserCount() == 0)
 			_delChannel(channel);
 	}
@@ -506,8 +504,10 @@ void	Server::_privmsgCmd(User *user, std::string buf)
 		return;
 	if (buf.find(':') == std::string::npos)
 		return (user->sendReply(ERR_NOTEXTTOSEND(user->getNickname())));
+	if (buf.find(':') == 0)
+		return (user->sendReply(ERR_NORECIPIENT(user->getNickname(), "PRIVMSG")));
 	std::string	msg = buf.substr(buf.find(':') + 1);
-	std::string dest = buf.substr(0, buf.find(':'));
+	std::string dest = buf.substr(0, buf.find(' '));
 	size_t		start = dest.find_first_not_of(" ");
 
 	dest = dest.substr(start, dest.find_last_not_of(" ") - start + 1);
@@ -525,8 +525,10 @@ void	Server::_noticeCmd(User *user, std::string buf)
 		return;
 	if (buf.find(':') == std::string::npos)
 		return;
+	if (buf.find(':') == 0)
+		return;
 	std::string	msg = buf.substr(buf.find(':') + 1);
-	std::string dest = buf.substr(0, buf.find(':'));
+	std::string dest = buf.substr(0, buf.find(' '));
 	size_t		start = dest.find_first_not_of(" ");
 
 	dest = dest.substr(start, dest.find_last_not_of(" ") - start + 1);

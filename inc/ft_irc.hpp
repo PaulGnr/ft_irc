@@ -44,6 +44,7 @@ class User;
 #define ERR_CANNOTSENDTOCHAN(channel)				":IRC 404 :" + channel + " :Cannot send to channel"
 #define ERR_TOOMANYTARGETS(target)					":IRC 407 :" + target + " :Duplicate recipients. No message delivered"
 #define ERR_NOORIGIN()								":IRC 409 :No origin specified"
+#define ERR_NORECIPIENT(client, command)			":IRC 411 :" + client + " :No recipient given (" + command + ")"
 #define ERR_NOTEXTTOSEND(nick)						":IRC 412 :" + nick + " :No text to send"
 #define ERR_UNKNOWNCOMMAND(nick, command)			":IRC 421 :" + nick + " " + command + " :Unknown command"
 #define ERR_NONICKNAMEGIVEN(nick)					":IRC 431 :" + nick + " :No nickname given"
@@ -67,7 +68,7 @@ class User;
 
 #define	RPL_UMODEIS(client, mode)							":IRC 221 " + client + " " + mode
 #define	RPL_ENDOFWHO(client, mask)							":IRC 315 " + client + " " + mask + " :End of WHO list"
-#define	RPL_LISTSTART(client)								":IRC 321 " + client + ":Channel :Users Name"
+#define	RPL_LISTSTART(client)								":IRC 321 " + client + " :Channel :Users Name"
 #define	RPL_LIST(client, channel, count, topic)				":IRC 322 " + client + " " + channel + " " + count + " :" + topic
 #define	RPL_LISTEND(client)									":IRC 323 " + client + " :End of /LIST"
 #define	RPL_CHANNELMODEIS(client, channel, params)			":IRC 324 " + client + " " + channel + " " + params

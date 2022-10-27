@@ -245,15 +245,15 @@ void	Channel::rpl_whoreply(User *user)
 	}
 }
 
-void	Channel::rpl_namreply(User *user, bool isIn, bool endList)
+void	Channel::rpl_namreply(User *user, bool endList)
 {
 	std::string	nicks;
 	std::string	symbol;
 
 	for (users_iterator it = _users.begin(); it != _users.end(); ++it)
 	{
-		if (!isIn && !it->second->isVisible())
-			break;
+		if (!it->second->isVisible())
+			continue;
 		if (_operators.find(it->first) != _operators.end())
 			nicks += "@";
 		if (_moderate.find(it->first) != _moderate.end())
@@ -338,11 +338,4 @@ void	Channel::privmsg(User *user, std::string msg)
 		if (it->second != user)
 			it->second->sendReply(RPL_PRIVMSG(nick, _name, msg));
 	}
-}
-
-void	Channel::showOperators(void)
-{
-	std::cout << "Operators :" << std::endl;
-	for (users_iterator it = _operators.begin(); it != _operators.end(); ++it)
-		std::cout << it->second->getNickname() << std::endl;
 }
