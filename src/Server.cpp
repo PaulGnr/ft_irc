@@ -39,6 +39,7 @@ void	Server::_poll_handler(void)
 			{
 				std::cout << "pollserver : socket " << it->fd << " hung up" << std::endl;
 				_delUser(it);
+				std::cout << "User deleted" << std::endl;
 			}
 			if (it->revents & POLLIN)
 			{
@@ -179,7 +180,9 @@ void	Server::_delUser(pfds_iterator &it)
 		}
 		_pfds.erase(it);
 		while (user->isInChan())
+		{
 			_partCmd(user, user->getFirstChan()->getName() + " :" + &(user->getFirstChan()->getName()[1]));
+		}
 		delete user;
 	}
 	catch (const std::out_of_range &e)

@@ -48,12 +48,26 @@ void	Server::_msgToUser(User *user, std::string dest, std::string msg)
 
 	if (dest == "botIrma")
 		return (_callIrma(user, msg));
+	std::vector<std::string>	target_name = _getChannels(dest);
+	User						*target;
+	for (std::vector<std::string>::iterator it = target_name.begin(); it != target_name.end(); ++it)
+	{
+		target = _getUserByNick(*it);
+		if (target == NULL)
+		{
+			user->sendReply(ERR_NOSUCHNICK(user->getNickname(), *it));
+			continue;
+		}
+		target->sendReply(RPL_PRIVMSG(nick, *it, msg));
+	}
+	/*
 	for (users_iterator it = _users.begin(); it != _users.end(); ++it)
 	{
 		if (it->second->getNickname() == dest)
 			return (it->second->sendReply(RPL_PRIVMSG(nick, dest, msg)));
 	}
 	user->sendReply(ERR_NOSUCHNICK(user->getNickname(), dest));
+	*/
 }
 
 void	Server::_msgToChannel(User *user, std::string dest, std::string msg)

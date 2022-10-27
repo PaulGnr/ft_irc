@@ -240,7 +240,7 @@ void	Channel::rpl_whoreply(User *user)
 	{
 		who = it->second;
 		if (!who->isVisible())
-			break;
+			continue;
 		user->sendReply(RPL_WHOREPLY(user->getNickname(), _name, who->getUser(), who->getHostname(), who->getServer(), who->getNickname(), who->getRealname()));
 	}
 }

@@ -178,6 +178,7 @@ void	Server::_quitCmd(User *user, std::string buf)
 		}
 	}
 	delete user;
+	std::cout << "User on socket " << fd << " left" << std::endl;
 }
 
 void	Server::_joinCmd(User *user, std::string buf)
@@ -462,7 +463,15 @@ void	Server::_kickCmd(User *user, std::string buf)
 		if (!channel->userIsIn(user))
 			return (user->sendReply(ERR_NOTONCHANNEL(user->getNickname(), channel_name)));
 		std::string	target_name = buf.substr(0, buf.find(' '));
-		buf = buf.substr(buf.find(' ') + 1);
+		if (buf.find(' '))
+		{
+			buf = buf.substr(buf.find(' ') + 1);
+			buf = buf.substr(buf.find_first_not_of(' '));
+			if (buf[0] != ':')
+				buf.clear();
+		}
+		else
+			buf.clear();
 
 		User	*target = _getUserByNick(target_name);
 		if (!target)

@@ -65,7 +65,7 @@ void	Server::_channelModeCmd(User *user, std::string buf)
 void	Server::_chanModeO(char sign, Channel *channel, User *user, std::string buf)
 {
 	if (buf.find(' ') == std::string::npos)
-		return (user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "MODE")));
+		return (user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "MODE " + sign + "o")));
 	std::string	nick = buf.substr(buf.find(' ') + 1);
 	User		*target = _getUserByNick(nick);
 
@@ -145,19 +145,17 @@ void	Server::_chanModeM(char sign, Channel *channel, User *user, std::string buf
 
 void	Server::_chanModeL(char sign, Channel *channel, User *user, std::string buf)
 {
-	std::stringstream	ss;
-
-	std::cout << "_chanModeL buf <" << buf << ">" << std::endl;
 	if (sign == '-')
 	{
 		channel->setLimit(-1);
 		channel->delMode('l');
 	}
 	if (buf.find(' ') == std::string::npos)
-		return (user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "MODE")));
+		return (user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "MODE " + sign + "l")));
 	size_t	limit;
+	std::stringstream	ss;
 
-	buf = buf.substr(buf.find_first_not_of(' '));
+	buf = buf.substr(buf.find(' ') + 1);
 	ss << buf.substr(0, buf.find(' '));
 	ss >> limit;
 	if (sign == '+')
@@ -165,7 +163,6 @@ void	Server::_chanModeL(char sign, Channel *channel, User *user, std::string buf
 		channel->setLimit(limit);
 		channel->addMode('l');
 	}
-	std::cout << "channel mode : <" << channel->getMode() << ">" << std::endl;
 }
 
 void	Server::_chanModeB(char sign, Channel *channel, User *user, std::string buf)
@@ -175,7 +172,7 @@ void	Server::_chanModeB(char sign, Channel *channel, User *user, std::string buf
 	std::string	nick = buf.substr(buf.find_last_of(' ') + 1);
 	User*		target = _getUserByNick(nick);
 
-	if (target == _users.end()->second)
+	if (target == NULL)
 		return (user->sendReply(ERR_NOSUCHNICK(user->getNickname(), nick)));
 	if (sign == '-')
 		channel->delBan(target);
@@ -185,7 +182,7 @@ void	Server::_chanModeB(char sign, Channel *channel, User *user, std::string buf
 		if (channel->userIsIn(target))
 		{
 			channel->broadcast(user, RPL_KICK(user->getNickname(), nick, channel->getName(), "banned"));
-			channel->delUser(target);
+			target->delChan(channel);
 			if (channel->getUserCount() == 0)
 				_delChannel(channel);
 		}
@@ -197,12 +194,13 @@ void	Server::_chanModeV(char sign, Channel *channel, User *user, std::string buf
 	std::string	nick;
 
 	if (buf.find(' ') == std::string::npos)
-		return (user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "MODE +k")));
-	nick = nick.substr(nick.find(' ') + 1);
+		return (user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "MODE " + sign + "v")));
+	nick = buf.substr(buf.find(' ') + 1);
+	nick = nick.substr(0, nick.find(' '));
 
 	User*		target = _getUserByNick(nick);
 
-	if (target == _users.end()->second)
+	if (target == NULL)
 		return (user->sendReply(ERR_NOSUCHNICK(user->getNickname(), nick)));
 	if (sign == '-')
 		channel->delModerate(target);
@@ -215,7 +213,7 @@ void	Server::_chanModeK(char sign, Channel *channel, User *user, std::string buf
 	std::string	key;
 
 	if (buf.find(' ') == std::string::npos)
-		return (user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "MODE +k")));
+		return (user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "MODE " + sign + "k")));
 	key = buf.substr(buf.find(' ') + 1);
 	if (sign == '+')
 	{
