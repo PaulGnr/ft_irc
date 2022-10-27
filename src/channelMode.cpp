@@ -28,11 +28,11 @@ void	Server::_channelModeCmd(User *user, std::string buf)
 		Channel	*channel = _chans.at(chan_name);
 		if (chan_name == buf)
 			return (channel->rpl_channelmodeis(user));
-		if (!channel->userIsOperator(user))
-			return (user->sendReply(ERR_CHANOPRIVSNEEDED(user->getNickname(), chan_name)));
 		buf = buf.substr(buf.find(' ') + 1);
 		if (buf[0] == 'b')
 			return(channel->rpl_banlist(user));
+		if (!channel->userIsOperator(user))
+			return (user->sendReply(ERR_CHANOPRIVSNEEDED(user->getNickname(), chan_name)));
 		if (buf[0] != '+' && buf[0] != '-')
 			return (user->sendReply(ERR_UMODEUNKNOWNFLAG()));
 		size_t	i = 0;

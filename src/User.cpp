@@ -98,7 +98,7 @@ void	User::sendReply(std::string reply)
 
 	if (n == -1)
 	{
-		std::cout << "Error User::sendReply" << std::endl;//Throw erreur ici
+		//std::cout << "Error User::sendReply" << std::endl;//Throw erreur ici
 	}
 }
 

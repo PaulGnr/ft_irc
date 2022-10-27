@@ -3,6 +3,7 @@
 void	Server::_userModeCmd(User *user, std::string buf)
 {
 	std::string	nick;
+
 	if (buf.find(' ') == std::string::npos)
 	{
 		nick = buf;
@@ -30,7 +31,7 @@ void	Server::_userModeCmd(User *user, std::string buf)
 	{
 		if (user->wrongMode(buf[i]))
 			user->sendReply(ERR_UNKNOWNMODE((str = buf[i])));
-		else if (buf[0] == '+')
+		else if (buf[0] == '+' && buf[i] != 'o')
 			user->addMode(buf[i]);
 		else if (buf[0] == '-')
 			user->delMode(buf[i]);

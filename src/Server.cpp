@@ -1,7 +1,5 @@
 #include "Server.hpp"
 
-extern bool	running;
-
 bool	running;
 
 Server::Server() : _port(""), _password(""), _host("")
@@ -245,6 +243,8 @@ User	*Server::_getUserByNick(std::string nick)
 		if (it->second->getNickname() == nick)
 			break;
 	}
+	if (it == _users.end())
+		return (NULL);
 	return (it->second);
 }
 

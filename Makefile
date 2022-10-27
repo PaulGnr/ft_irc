@@ -2,6 +2,7 @@ SRC	= $(SRCDIR)/main.cpp \
 		$(SRCDIR)/User.cpp \
 		$(SRCDIR)/Server.cpp \
 		$(SRCDIR)/serverCmd.cpp \
+		$(SRCDIR)/utilsCmd.cpp \
 		$(SRCDIR)/serverChannel.cpp \
 		$(SRCDIR)/Channel.cpp \
 		$(SRCDIR)/channelMode.cpp \
