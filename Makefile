@@ -22,12 +22,7 @@ DEP		= $(OBJ:%.o=%.d)
 
 CFLAGS	= -Wall -Wextra -Werror -std=c++98
 
-HOST = $(shell whoami)
-ifeq ($(HOST),louisraffin)
-	CC = c++-11
-else
-	CC = c++
-endif
+CC = c++
 
 RM		= rm -rf
 
@@ -51,3 +46,5 @@ fclean	: clean
 	$(RM) $(NAME)
 
 re	: fclean all
+
+.PHONY : all re clean fclean 
