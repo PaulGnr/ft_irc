@@ -5,22 +5,18 @@ extern bool	running;
 bool	portIsOK(std::string port)
 {
 	std::string::size_type	i;
-	int						i_port;
 
-	try
+	for (size_t j = 0; j < port.size(); ++j)
 	{
-		std::istringstream(port) >> i_port;
-		i = int(log10(i_port) + 1);
-		if (i != port.size())
+		if (port[j] < '0' || port[j] > '9')
 			return (false);
-		if (i <= 0 || i > 65535)
-			return (false);
-		return (true);
 	}
-	catch (const std::exception &e)
-	{
+	std::stringstream	ss;
+	ss << port;
+	ss >> i;
+	if (i <= 0 || i > 65535)
 		return (false);
-	}
+	return (true);
 }
 
 void	sigHandler(int signum)
