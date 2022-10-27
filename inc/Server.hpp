@@ -116,6 +116,11 @@ class Server
 		void						_delChannel(Channel *chan);
 		std::vector<std::string>	_getChannels(std::string buf);
 		std::vector<std::string>	_getKeys(std::string buf, size_t size);
+
+		// Bot
+		
+		void	_callIrma(User *user, std::string msg);
+		void	_channelCallIrma(Channel *channel, User *user, std::string msg);
 };
 
 #endif

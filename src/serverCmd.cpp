@@ -23,7 +23,6 @@ void	Server::_createCmd(void)
 
 void	Server::_handleCmd(User *user)
 {
-	std::cout << "handleCmd" << std::endl;
 	std::string	msg = user->getMessage();
 	std::string	cmd;
 	std::string	buf;
@@ -97,7 +96,7 @@ void	Server::_passCmd(User *user, std::string buf)
 void	Server::_nickCmd(User *user, std::string buf)
 {
 	if (!user->getPasswdOK())
-		_close(user);
+		return (_close(user));
 	if (buf.empty())
 		return (user->sendReply(ERR_NONICKNAMEGIVEN(user->getNickname())));
 	if (buf.find(' ') != std::string::npos)
@@ -117,7 +116,7 @@ void	Server::_nickCmd(User *user, std::string buf)
 void	Server::_userCmd(User *user, std::string buf)
 {
 	if (!user->getPasswdOK())
-		_close(user);
+		return (_close(user));
 	if (user->hasBeenWelcomed())
 		return (user->sendReply(ERR_ALREADYREGISTERED(user->getNickname())));
 	if (buf.empty())
@@ -153,7 +152,7 @@ void	Server::_userCmd(User *user, std::string buf)
 void	Server::_quitCmd(User *user, std::string buf)
 {
 	if (!user->getPasswdOK())
-		_close(user);
+		return (_close(user));
 	if (!user->hasBeenWelcomed())
 		return;
 	Channel	*channel;
@@ -184,7 +183,7 @@ void	Server::_quitCmd(User *user, std::string buf)
 void	Server::_joinCmd(User *user, std::string buf)
 {
 	if (!user->getPasswdOK())
-		_close(user);
+		return (_close(user));
 	if (!user->hasBeenWelcomed())
 		return;
 	if (buf.empty())
@@ -246,7 +245,7 @@ void	Server::_joinCmd(User *user, std::string buf)
 void	Server::_partCmd(User *user, std::string buf)
 {
 	if (!user->getPasswdOK())
-		_close(user);
+		return (_close(user));
 	if (!user->hasBeenWelcomed())
 		return;
 	std::string	channel_name;
@@ -278,7 +277,7 @@ void	Server::_partCmd(User *user, std::string buf)
 void	Server::_modeCmd(User *user, std::string buf)
 {
 	if (!user->getPasswdOK())
-		_close(user);
+		return (_close(user));
 	if (!user->hasBeenWelcomed())
 		return;
 	if (buf.empty())
@@ -292,7 +291,7 @@ void	Server::_modeCmd(User *user, std::string buf)
 void	Server::_topicCmd(User *user, std::string buf)
 {
 	if (!user->getPasswdOK())
-		_close(user);
+		return (_close(user));
 	if (!user->hasBeenWelcomed())
 		return;
 	if (buf.empty())
@@ -329,7 +328,7 @@ void	Server::_topicCmd(User *user, std::string buf)
 void	Server::_namesCmd(User *user, std::string buf)
 {
 	if (!user->getPasswdOK())
-		_close(user);
+		return (_close(user));
 	if (!user->hasBeenWelcomed())
 		return;
 	if (buf.empty())
@@ -369,7 +368,7 @@ void	Server::_namesCmd(User *user, std::string buf)
 void	Server::_listCmd(User *user, std::string buf)
 {
 	if (!user->getPasswdOK())
-		_close(user);
+		return (_close(user));
 	if (!user->hasBeenWelcomed())
 		return;
 	Channel	*channel;
@@ -425,7 +424,7 @@ void	Server::_listCmd(User *user, std::string buf)
 void	Server::_inviteCmd(User *user, std::string buf)
 {
 	if (!user->getPasswdOK())
-		_close(user);
+		return (_close(user));
 	if (!user->hasBeenWelcomed())
 		return;
 	if (buf.empty() || buf.find(' ') == std::string::npos)
@@ -459,7 +458,7 @@ void	Server::_inviteCmd(User *user, std::string buf)
 void	Server::_kickCmd(User *user, std::string buf)
 {
 	if (!user->getPasswdOK())
-		_close(user);
+		return (_close(user));
 	if (!user->hasBeenWelcomed())
 		return;
 	if (buf.find(' ') == std::string::npos)	
@@ -499,6 +498,8 @@ void	Server::_msgToUser(User *user, std::string dest, std::string msg)
 {
 	std::string	nick = user->getNickname();
 
+	if (dest == "botIrma")
+		return (_callIrma(user, msg));
 	for (users_iterator it = _users.begin(); it != _users.end(); ++it)
 	{
 		if (it->second->getNickname() == dest)
@@ -515,6 +516,8 @@ void	Server::_msgToChannel(User *user, std::string dest, std::string msg)
 
 		if (!channel->userIsIn(user) && channel->isNoOutside())
 			return (user->sendReply(ERR_CANNOTSENDTOCHAN(dest)));
+		if (msg.find("botIrma") == 0)
+			return (_channelCallIrma(channel, user, msg));
 		channel->privmsg(user, msg);
 	}
 	catch (const std::out_of_range &e)
@@ -526,7 +529,7 @@ void	Server::_msgToChannel(User *user, std::string dest, std::string msg)
 void	Server::_privmsgCmd(User *user, std::string buf)
 {
 	if (!user->getPasswdOK())
-		_close(user);
+		return (_close(user));
 	if (!user->hasBeenWelcomed())
 		return;
 	if (buf.find(':') == std::string::npos)
@@ -545,7 +548,7 @@ void	Server::_privmsgCmd(User *user, std::string buf)
 void	Server::_noticeCmd(User *user, std::string buf)
 {
 	if (!user->getPasswdOK())
-		_close(user);
+		return (_close(user));
 	if (!user->hasBeenWelcomed())
 		return;
 	if (buf.find(':') == std::string::npos)
@@ -580,7 +583,7 @@ void	Server::_noticeCmd(User *user, std::string buf)
 void	Server::_whoCmd(User *user, std::string buf)
 {
 	if (!user->getPasswdOK())
-		_close(user);
+		return (_close(user));
 	if (!user->hasBeenWelcomed())
 		return;
 	buf = buf.substr(0, buf.find(' '));
@@ -608,7 +611,7 @@ void	Server::_whoCmd(User *user, std::string buf)
 void	Server::_pingCmd(User *user, std::string buf)
 {
 	if (!user->getPasswdOK())
-		_close(user);
+		return (_close(user));
 	if (!user->hasBeenWelcomed())
 		return;
 	if (buf.empty())

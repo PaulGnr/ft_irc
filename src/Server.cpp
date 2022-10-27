@@ -145,7 +145,7 @@ int	Server::_getMessage(User *user)
 	std::string	str;
 
 	user->clearMsg();
-	while (str.rfind("\r\n") != str.length() - 2 || str.length() <= 2)
+	while (str.rfind("\r\n") != str.length() - 2 || str.length() < 2)
 	{
 		memset(buf, 0, sizeof(buf));
 		nbytes = recv(fd, buf, sizeof(buf), 0);
@@ -262,6 +262,7 @@ void	Server::_close(User *user)
 		}
 	}
 	_users.erase(fd);
+	delete user;
 }
 
 void	Server::_clean(void)

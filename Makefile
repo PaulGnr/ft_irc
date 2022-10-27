@@ -6,7 +6,8 @@ SRC	= $(SRCDIR)/main.cpp \
 		$(SRCDIR)/Channel.cpp \
 		$(SRCDIR)/channelMode.cpp \
 		$(SRCDIR)/userMode.cpp \
-		$(SRCDIR)/utils.cpp
+		$(SRCDIR)/utils.cpp \
+		$(SRCDIR)/botIrma.cpp
 
 SRCDIR	= src
 
