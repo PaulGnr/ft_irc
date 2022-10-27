@@ -92,7 +92,10 @@ void	Server::_passCmd(User *user, std::string buf)
 	if (!buf.length())
 		return (user->sendReply(ERR_NEEDMOREPARAMS(user->getNickname(), "PASS")));
 	if (buf.compare(_password))
+	{
+		user->setPasswdOK(false);
 		return (user->sendReply(ERR_PASSWDMISMATCH(user->getNickname())));
+	}
 	user->setPasswdOK(true);
 	if (user->getNickname().length() && user->getUser().length())
 		user->welcome();
