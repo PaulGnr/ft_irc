@@ -54,6 +54,7 @@ void	Server::_channelModeCmd(User *user, std::string buf)
 				user->sendReply(ERR_UNKNOWNMODE((str = buf[i])));
 			}
 		}
+		std::cout << "Channel mode : <" << channel->getMode() << ">" << std::endl;
 	}
 	catch (const std::out_of_range &e)
 	{

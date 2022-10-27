@@ -250,19 +250,24 @@ User	*Server::_getUserByNick(std::string nick)
 
 void	Server::_close(User *user)
 {
-	user->sendReply("Please, enter PASS first. Disconnecting.");
-	int	fd = user->getFd();
-	close(fd);
-	for (pfds_iterator it = _pfds.begin(); it != _pfds.end(); ++it)
+	try
 	{
-		if (fd == it->fd)
+		user->sendReply("Please, enter PASS first. Disconnecting.");
+		int	fd = user->getFd();
+		close(fd);
+		for (pfds_iterator it = _pfds.begin(); it != _pfds.end(); ++it)
 		{
-			_pfds.erase(it);
-			break;
+			if (fd == it->fd)
+			{
+				_pfds.erase(it);
+				break;
+			}
 		}
+		_users.erase(fd);
+		delete user;
+		std::cout << "Disconnecting user on socket " << fd << std::endl;
 	}
-	_users.erase(fd);
-	delete user;
+	catch (const std::out_of_range &e) {}
 }
 
 void	Server::_clean(void)

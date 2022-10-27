@@ -160,7 +160,7 @@ void	Channel::addMode(char c)
 void	Channel::delMode(char c)
 {
 	if (_mode.find(c) != std::string::npos)
-		_mode.erase(_mode.find(c));
+		_mode.erase(_mode.find(c), 1);
 }
 
 bool	Channel::wrongMode(char c)
@@ -319,18 +319,6 @@ void	Channel::privmsg(User *user, std::string msg)
 {
 	std::string	nick = user->getNickname();
 
-	if (_mode.find('n') != std::string::npos)
-	{
-		try
-		{
-			user->sendReply(ERR_CANNOTSENDTOCHAN(_name));
-			_users.at(user->getFd());
-		}
-		catch (const std::out_of_range &e)
-		{
-			return;
-		}
-	}
 	if (_mode.find('m') != std::string::npos && !userIsOperator(user) && !userIsModerate(user))
 		return (user->sendReply(ERR_CANNOTSENDTOCHAN(_name)));
 	for (users_iterator it = _users.begin(); it != _users.end(); ++it)

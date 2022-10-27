@@ -42,15 +42,15 @@ void	User::delMode(char c)
 		_mode.erase(_mode.find(c), 1);
 }
 
-void	User::addChan(Channel *chan)
+void	User::addChan(Channel *channel)
 {
-	_chans.insert(std::make_pair(chan->getName(), chan));
+	_chans.insert(std::make_pair(channel->getName(), channel));
 }
 
-void	User::delChan(Channel *chan)
+void	User::delChan(Channel *channel)
 {
-	_chans.erase(chan->getName());
-	chan->delUser(this);
+	_chans.erase(channel->getName());
+	channel->delUser(this);
 }
 
 bool	User::isVisible(void)
